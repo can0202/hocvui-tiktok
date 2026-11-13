@@ -5,6 +5,7 @@ import { GAME, shownTeacherName } from './config';
 import { thayHoa } from './xung-ho';
 import { Hair } from './Hair';
 import { giftOf } from './quiz';
+import { getActiveTheme, applyTheme } from '../theme';
 import './stage.css';
 
 /**
@@ -130,7 +131,11 @@ function useNow(ms = 250) {
 export function GameStage({ game }: { game: GameState }) {
   const now = useNow();
   const v = game.view;
+  const theme = getActiveTheme();
   THAY = v?.cfg.teacher === 'thay';
+  useEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
   useEffect(() => {
     for (const src of [...(THAY ? THAY_IMGS : ALL_IMGS), ...GIAM_THI_IMGS]) new Image().src = src;
   }, [THAY]);
@@ -142,10 +147,10 @@ export function GameStage({ game }: { game: GameState }) {
     );
   }
   return (
-    <div className={`relative h-full w-full overflow-hidden ${v.clapping ? 'class-clap' : ''}`}>
+    <div data-theme={theme} className={`stage-container relative h-full w-full overflow-hidden ${v.clapping ? 'class-clap' : ''}`}>
       {/* nền riêng tải lên ở trang điều khiển phủ lên nền gốc; ảnh riêng không có bảng đen nên game tự vẽ 1 tấm ở đúng chỗ */}
       {v.cfg.bg && <img src={`/room-bg/${v.cfg.bg}`} className="absolute inset-0 h-full w-full object-cover" />}
-      {v.cfg.bg && <div className="absolute left-[332px] top-[244px] h-[384px] w-[592px] rounded-[10px] border-[12px] border-[#7a4a1d] bg-[#1d4a38] shadow-[0_8px_14px_rgba(0,0,0,0.4)]" />}
+      {(v.cfg.bg || theme !== 'classic') && <div className="board-screen absolute left-[332px] top-[244px] h-[384px] w-[592px]" />}
       {/* tặng hoa: chỉ có bạn nhỏ đi lên bục đưa cô (FlowerWalk), không zoom, không khung cận cảnh (chủ kênh bỏ 2026-11-04).
           Giữ motion.div như cũ (scale luôn 1): đổi sang div thường thì hình trên live khác đi */}
       <motion.div className="absolute inset-0" style={{ transformOrigin: '330px 700px' }} animate={{ scale: 1 }}>
@@ -155,6 +160,7 @@ export function GameStage({ game }: { game: GameState }) {
         <EventBadge v={v} />
         <Motto text={v.cfg.motto} />
         <Board v={v} now={now} />
+        <GoldenConfetti active={Boolean(v.golden && v.phase !== 'recess')} />
         <DayTop v={v} />
         <TeamBoard v={v} />
         <TalkTop v={v} />
@@ -211,13 +217,48 @@ function GiftPile({ v }: { v: StageView }) {
   );
 }
 
+// Hạt sao / giấy vàng rơi mừng câu hỏi vàng
+const CONFETTI_PIECES = Array.from({ length: 32 }, (_, i) => {
+  const shapes = ['⭐', '✨', '✦', '◆', '🪙', '🌟'];
+  const left = ((i * 3.1) % 96) + 2; // 2% to 98%
+  const duration = 3.2 + ((i * 7) % 25) / 10; // 3.2s to 5.7s
+  const delay = ((i * 13) % 40) / 10; // 0s to 4.0s
+  const size = 18 + ((i * 5) % 18); // 18px to 36px
+  const shape = shapes[i % shapes.length];
+  return { id: i, left, duration, delay, size, shape };
+});
+
+function GoldenConfetti({ active }: { active: boolean }) {
+  if (!active) return null;
+  return (
+    <div className="pointer-events-none absolute inset-0 z-[60] overflow-hidden">
+      {CONFETTI_PIECES.map((p) => (
+        <div
+          key={p.id}
+          className="golden-confetti-particle select-none text-center"
+          style={{
+            left: `${p.left}%`,
+            fontSize: `${p.size}px`,
+            animationDuration: `${p.duration}s`,
+            animationDelay: `${p.delay}s`,
+            color: '#ffd84a',
+            textShadow: '0 0 10px rgba(255, 216, 74, 0.8), 0 2px 4px rgba(122, 46, 14, 0.6)',
+          }}
+        >
+          {p.shape}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // Bảng "Gửi tặng cô Ngân" giữa Quỹ lớp và Top tương tác (chủ kênh 2026-11-05): viết kiểu gửi tặng, không giục,
 // không hứa điểm hay lợi thế (TikTok cấm khuyến khích tặng quà). Món và câu mô tả ở GAME.giftMenu
 function GiftMenu() {
   return (
     // cột hẹp bên phải bảng đen (như Quỹ lớp), mỗi món 1 dòng: không đè lên câu hỏi
-    <div className="absolute right-[8px] top-[484px] z-[8] w-[168px] rotate-1 rounded-[14px] border-[3px] border-[#c9a45c] bg-[#fff8e1]/95 px-2 pb-1 pt-[2px] text-[#4a2c0e] shadow-[0_6px_10px_rgba(0,0,0,0.3)]">
-      <div className="whitespace-nowrap text-center text-[16px] font-extrabold leading-tight text-[#be185d]">{X('🎁 Gửi tặng cô 💕')}</div>
+    <div className="hud-panel absolute right-[8px] top-[484px] z-[8] w-[168px] rotate-1 px-2 pb-1 pt-[2px]">
+      <div className="whitespace-nowrap text-center text-[16px] font-extrabold leading-tight" style={{ color: 'var(--panel-title)' }}>{X('🎁 Gửi tặng cô 💕')}</div>
       {GAME.giftMenu.map((g) => (
         <div key={g.label} className="flex items-center gap-[2px] whitespace-nowrap text-[15px] font-semibold leading-[24px]">
           <span className="w-6 text-center text-[19px]">{g.icon}</span>
@@ -233,10 +274,10 @@ function ClassFund({ v }: { v: StageView }) {
   const f = v.fund;
   return (
     // chỉ ghi "Quỹ lớp" + số bông (chủ kênh bỏ mục tiêu 2026-11-05), nằm trong cột hẹp bên phải bảng đen, không đè câu hỏi
-    <div className="absolute right-[8px] top-[428px] z-20 flex w-[168px] -rotate-1 items-baseline justify-between rounded-[14px] border-[3px] border-[#c9a45c] bg-[#fff8e1]/95 px-2 pb-1 pt-2 text-[#be185d] shadow-[0_6px_10px_rgba(0,0,0,0.3)]">
+    <div className="hud-panel absolute right-[8px] top-[428px] z-20 flex w-[168px] -rotate-1 items-baseline justify-between px-2 pb-1 pt-2">
       <div className="absolute -top-[18px] left-1/2 -translate-x-1/2 text-[28px]">📌</div>
-      <span className="whitespace-nowrap text-[19px] font-extrabold leading-tight">💝 Quỹ lớp</span>
-      <span className="text-[28px] font-extrabold leading-tight">{f.today}</span>
+      <span className="whitespace-nowrap text-[19px] font-extrabold leading-tight" style={{ color: 'var(--panel-title)' }}>💝 Quỹ lớp</span>
+      <span className="text-[28px] font-extrabold leading-tight" style={{ color: 'var(--panel-points)' }}>{f.today}</span>
     </div>
   );
 }
@@ -275,12 +316,22 @@ function Header({ v, name }: { v: StageView; name: string }) {
           ? `${v.review ? 'Ôn bài' : `Tiết ${v.round}`} · Câu ${v.qNo}/${v.total}`
           : `Tiết ${v.round}`;
   return (
-    <div className="absolute left-1/2 top-[14px] flex w-[470px] -translate-x-1/2 flex-col items-center rounded-[28px] border-[5px] border-[#7a4a1d] bg-[#f6e3b4] px-6 py-3 shadow-[0_8px_0_#5b3512]">
-      <div className="max-w-full truncate font-extrabold leading-none tracking-wide text-[#7a2e0e]" style={{ fontSize: name.length > 14 ? 34 : 46 }}>
+    <div
+      className="absolute left-1/2 top-[14px] flex w-[470px] -translate-x-1/2 flex-col items-center rounded-[28px] px-6 py-3"
+      style={{
+        background: 'var(--header-bg)',
+        border: '5px solid var(--header-border)',
+        boxShadow: 'var(--header-shadow)',
+      }}
+    >
+      <div
+        className="max-w-full truncate font-extrabold leading-none tracking-wide"
+        style={{ fontSize: name.length > 14 ? 34 : 46, color: 'var(--header-title)' }}
+      >
         {name.toUpperCase()}
       </div>
       {/* sĩ số trong lớp / số bạn đang chờ vào (chỗ bảng sĩ số cũ ở cửa trái giờ là bàn quà của cô) */}
-      <div className="mt-1 whitespace-nowrap text-[24px] font-semibold text-[#6b4a22]">
+      <div className="mt-1 whitespace-nowrap text-[24px] font-semibold" style={{ color: 'var(--header-sub)' }}>
         {sub} · 👥 {v.roster.seated}/{v.roster.seats}
         {v.roster.waiting > 0 && ` · ⏳ chờ ${v.roster.waiting}`}
       </div>
@@ -292,7 +343,7 @@ function Header({ v, name }: { v: StageView; name: string }) {
 function Board({ v, now }: { v: StageView; now: number }) {
   const left = Math.max(0, Math.ceil((v.endsAt - now) / 1000));
   return (
-    <div className={`chalk absolute left-[350px] top-[262px] h-[348px] w-[555px] text-[#f4f1e6] ${v.golden && v.phase !== 'recess' ? 'golden-board' : ''}`}>
+    <div className={`chalk absolute left-[350px] top-[262px] h-[348px] w-[555px] ${v.golden && v.phase !== 'recess' ? 'golden-board' : ''}`} style={{ color: 'var(--board-text)' }}>
       {v.phase === 'intro' && v.round % 2 === 0 && v.weekTop.length > 0 && <WeekBoard v={v} left={left} />}
       {v.phase === 'intro' && !(v.round % 2 === 0 && v.weekTop.length > 0) && (
         <div className="flex h-full flex-col items-center justify-center text-center">
@@ -300,12 +351,12 @@ function Board({ v, now }: { v: StageView; now: number }) {
           <div className="mt-6 text-[36px] leading-snug">
             {X('Cô xáo chữ, cả lớp đoán từ.')}
             <br />
-            Gõ đáp án vào <b className="text-[#ffe680]">bình luận</b>
+            Gõ đáp án vào <b style={{ color: 'var(--text-gold)' }}>bình luận</b>
             <br />
-            Nhanh nhất <b className="text-[#ffe680]">+10 điểm</b>
+            Nhanh nhất <b style={{ color: 'var(--text-gold)' }}>+10 điểm</b>
           </div>
-          {v.topic && <div className="mt-3 text-[32px] text-[#ffe680]">🗳️ Cả lớp chọn: {v.topic}</div>}
-          {v.review && <div className="mt-3 text-[32px] text-[#ffe680]">📖 Giờ ôn bài · gõ "vào lớp" để học bài mới</div>}
+          {v.topic && <div className="mt-3 text-[32px]" style={{ color: 'var(--text-gold)' }}>🗳️ Cả lớp chọn: {v.topic}</div>}
+          {v.review && <div className="mt-3 text-[32px]" style={{ color: 'var(--text-gold)' }}>📖 Giờ ôn bài · gõ "vào lớp" để học bài mới</div>}
           <div className="mt-4 text-[30px] opacity-80">Bắt đầu sau {left} giây</div>
         </div>
       )}
@@ -314,12 +365,18 @@ function Board({ v, now }: { v: StageView; now: number }) {
         <div className="flex h-full flex-col">
           <div className="flex items-center justify-between">
             {v.golden ? (
-              <span className="rounded-full bg-[#ffd84a] px-4 text-[28px] font-bold text-[#7a2e0e]">⭐ CÂU HỎI VÀNG x2</span>
+              <span className="rounded-full px-4 text-[28px] font-bold" style={{ background: 'var(--text-gold)', color: '#7a2e0e' }}>⭐ CÂU HỎI VÀNG x2</span>
             ) : !v.slot && !v.boardShown ? (
               // câu chữ thường đang đọc đề: ẩn nhãn chủ đề (cũng là gợi ý), chỉ hiện "Câu N"
               <span />
             ) : (
-              <span className={`rounded-full border-2 px-4 text-[26px] ${v.slot ? 'border-[#ffe680] text-[#ffe680]' : 'border-[#f4f1e6]/60'}`}>
+              <span
+                className="rounded-full border-2 px-4 text-[26px]"
+                style={{
+                  borderColor: v.slot ? 'var(--text-gold)' : 'rgba(255, 255, 255, 0.6)',
+                  color: v.slot ? 'var(--text-gold)' : 'inherit',
+                }}
+              >
                 {v.slot === 'meo'
                   ? `🤪 Đố mẹo ${v.riddleNo}/2`
                   : v.slot === 'su'
@@ -331,7 +388,7 @@ function Board({ v, now }: { v: StageView; now: number }) {
                         : v.category}
               </span>
             )}
-            {v.phase !== 'reveal' ? <Timer left={left} /> : <span className="text-[34px] text-[#9df29d]">Đáp án</span>}
+            {v.phase !== 'reveal' ? <Timer left={left} /> : <span className="text-[34px]" style={{ color: 'var(--text-correct)' }}>Đáp án</span>}
           </div>
           {!v.boardShown ? (
             v.riddleNo === 1 ? (
@@ -345,7 +402,7 @@ function Board({ v, now }: { v: StageView; now: number }) {
                 <motion.div animate={{ rotate: [-8, 8, -8] }} transition={{ duration: 1.2, repeat: Infinity }} className="text-[90px] leading-none">
                   🤪
                 </motion.div>
-                <div className="mt-2 text-[58px] font-bold leading-none text-[#ffe680]">PHẦN ĐỐ MẸO</div>
+                <div className="mt-2 text-[58px] font-bold leading-none" style={{ color: 'var(--text-gold)' }}>PHẦN ĐỐ MẸO</div>
                 <div className="mt-3 text-[36px]">2 câu liền · vẫn tính điểm</div>
                 <div className="mt-2 text-[32px] opacity-90">Chuẩn bị tinh thần, nghĩ xéo mới thắng!</div>
               </motion.div>
@@ -354,11 +411,12 @@ function Board({ v, now }: { v: StageView; now: number }) {
             <div className="flex flex-1 flex-col items-center justify-center text-center">
               {/* cô đang đọc: chỉ hiện "Câu N", KHÔNG hiện gợi ý (chủ kênh 2026-11-05: hiện gợi ý thì người đọc nhanh đoán trước, không công bằng).
                   Đọc xong mới hiện gợi ý + chữ xáo + ô đáp án cùng lúc */}
-              <div className="text-[72px] font-bold leading-none text-[#ffe680]">Câu {v.qNo}</div>
+              <div className="text-[72px] font-bold leading-none" style={{ color: 'var(--text-gold)' }}>Câu {v.qNo}</div>
               <motion.div
                 animate={{ opacity: [0.5, 1, 0.5] }}
                 transition={{ duration: 1.4, repeat: Infinity }}
-                className="mt-6 text-[40px] text-[#ffe680]"
+                className="mt-6 text-[40px]"
+                style={{ color: 'var(--text-gold)' }}
               >
                 {X('👂 Nghe cô đọc đề nè…')}
               </motion.div>
@@ -381,7 +439,8 @@ function Board({ v, now }: { v: StageView; now: number }) {
               key={v.math}
               initial={{ scale: 0.6, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className={`mt-4 shrink-0 text-center text-[76px] font-extrabold leading-[96px] text-[#ffe680] ${v.phase === 'reveal' ? 'opacity-50' : ''}`}
+              className={`mt-4 shrink-0 text-center text-[76px] font-extrabold leading-[96px] ${v.phase === 'reveal' ? 'opacity-50' : ''}`}
+              style={{ color: 'var(--text-gold)' }}
             >
               {v.math}
             </motion.div>
@@ -394,7 +453,7 @@ function Board({ v, now }: { v: StageView; now: number }) {
           {v.boardShown && <Slots slots={v.slots} reveal={v.phase === 'reveal'} />}
           {v.boardShown && v.math && v.phase !== 'reveal' && <div className="mt-2 text-center text-[28px] opacity-80">Gõ số vào bình luận</div>}
           {v.phase === 'bonus' && (
-            <div className="mt-auto text-center text-[28px] text-[#ffe680]">{v.math ? 'Thêm 10 giây, nhẩm lẹ lên!' : X('Cô mở thêm 1 chữ, thêm 10 giây!')}</div>
+            <div className="mt-auto text-center text-[28px]" style={{ color: 'var(--text-gold)' }}>{v.math ? 'Thêm 10 giây, nhẩm lẹ lên!' : X('Cô mở thêm 1 chữ, thêm 10 giây!')}</div>
           )}
         </div>
       )}
@@ -411,14 +470,52 @@ function Board({ v, now }: { v: StageView; now: number }) {
 
 function Timer({ left }: { left: number }) {
   const urgent = left <= 5;
+  const radius = 33;
+  const circumference = 2 * Math.PI * radius; // ~207.35
+  const total = 20; // 20 giây mỗi câu chuẩn
+  const progress = Math.min(1, Math.max(0, left / total));
+  const strokeDashoffset = circumference * (1 - progress);
+
   return (
     <motion.div
-      key={urgent ? left : 'calm'}
-      initial={urgent ? { scale: 1.35 } : false}
-      animate={{ scale: 1 }}
-      className={`flex h-[78px] min-w-[78px] items-center justify-center rounded-full border-[5px] px-2 text-[50px] font-bold leading-none ${urgent ? 'border-[#ff8a7a] bg-[#ff8a7a]/20 text-[#ff8a7a]' : 'border-[#f4f1e6]'}`}
+      key={urgent ? 'urgent' : 'normal'}
+      animate={urgent ? { scale: [1, 1.08, 1] } : { scale: 1 }}
+      transition={urgent ? { duration: 0.6, repeat: Infinity, ease: 'easeInOut' } : {}}
+      className="relative flex h-[82px] w-[82px] items-center justify-center select-none"
     >
-      {left}
+      <svg className="absolute inset-0 h-full w-full -rotate-90" viewBox="0 0 80 80">
+        <circle
+          cx="40"
+          cy="40"
+          r={radius}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="6"
+          className="opacity-20"
+        />
+        <motion.circle
+          cx="40"
+          cy="40"
+          r={radius}
+          fill={urgent ? 'var(--timer-urgent-bg)' : 'rgba(0, 0, 0, 0.15)'}
+          stroke={urgent ? 'var(--timer-urgent-border)' : 'var(--timer-border)'}
+          strokeWidth="6.5"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          animate={{ strokeDashoffset }}
+          transition={{ duration: 0.35, ease: 'linear' }}
+          style={urgent ? { filter: 'drop-shadow(0 0 6px var(--timer-urgent-border))' } : undefined}
+        />
+      </svg>
+      <span
+        className="relative z-10 text-[46px] font-extrabold leading-none tabular-nums"
+        style={{
+          color: urgent ? 'var(--timer-urgent-text)' : 'var(--timer-text)',
+          textShadow: urgent ? '0 0 10px var(--timer-urgent-border)' : '0 2px 4px rgba(0,0,0,0.4)',
+        }}
+      >
+        {left}
+      </span>
     </motion.div>
   );
 }
@@ -427,15 +524,31 @@ function Tiles({ letters, dim }: { letters: string[]; dim: boolean }) {
   const n = letters.length || 1;
   const size = Math.min(76, Math.floor((555 - 8 * (n - 1)) / n));
   return (
-    <div className={`mt-3 flex justify-center gap-2 ${dim ? 'opacity-40' : ''}`}>
+    <div className={`mt-3 flex justify-center gap-2 ${dim ? 'opacity-40' : ''}`} style={{ perspective: 800 }}>
       {letters.map((ch, i) => (
         <motion.div
           key={`${i}${ch}`}
-          initial={{ y: -30, opacity: 0, rotate: -8 }}
-          animate={{ y: 0, opacity: 1, rotate: ((i * 37) % 9) - 4 }}
-          transition={{ delay: i * 0.05, type: 'spring', stiffness: 300, damping: 18 }}
-          className="tile flex items-center justify-center font-extrabold"
-          style={{ width: size, height: size * 1.1, fontSize: size * 0.62 }}
+          initial={{ rotateX: 90, opacity: 0, scale: 0.4, y: -25 }}
+          animate={{
+            rotateX: 0,
+            opacity: dim ? 0.35 : 1,
+            scale: dim ? 0.88 : 1,
+            y: dim ? 16 : 0,
+            rotateZ: ((i * 37) % 9) - 4,
+          }}
+          transition={{
+            delay: i * 0.05,
+            type: 'spring',
+            stiffness: 280,
+            damping: 16,
+          }}
+          className="tile relative flex items-center justify-center font-extrabold select-none"
+          style={{
+            width: size,
+            height: size * 1.1,
+            fontSize: size * 0.62,
+            transformStyle: 'preserve-3d',
+          }}
         >
           {ch}
         </motion.div>
@@ -448,18 +561,30 @@ function Slots({ slots, reveal }: { slots: (string | null)[]; reveal: boolean })
   const n = slots.length || 1;
   const size = Math.min(56, Math.floor((555 - 6 * (n - 1)) / n));
   return (
-    <div className="mt-4 flex justify-center gap-[6px]">
+    <div className="mt-4 flex justify-center gap-[6px]" style={{ perspective: 600 }}>
       {slots.map((ch, i) =>
         ch === ' ' ? (
           <div key={i} style={{ width: size * 0.5 }} />
         ) : (
-          <div
+          <motion.div
             key={i}
-            className={`flex items-end justify-center border-b-4 ${reveal ? 'border-[#9df29d] text-[#9df29d]' : 'border-[#f4f1e6]'}`}
-            style={{ width: size, height: size, fontSize: size * 0.8, lineHeight: 1 }}
+            initial={reveal ? { rotateY: 90, scale: 0.7 } : false}
+            animate={{ rotateY: 0, scale: 1 }}
+            transition={{ delay: i * 0.04, type: 'spring', stiffness: 260, damping: 16 }}
+            className="flex items-end justify-center border-b-[5px] rounded-t-md"
+            style={{
+              width: size,
+              height: size,
+              fontSize: size * 0.8,
+              lineHeight: 1,
+              borderColor: reveal ? 'var(--slot-reveal-border)' : 'var(--slot-border)',
+              color: reveal ? 'var(--slot-reveal-text)' : 'inherit',
+              backgroundColor: reveal ? 'rgba(74, 222, 128, 0.12)' : 'rgba(255, 255, 255, 0.05)',
+              boxShadow: reveal ? '0 0 10px rgba(74, 222, 128, 0.35)' : 'none',
+            }}
           >
             {ch ?? ''}
-          </div>
+          </motion.div>
         ),
       )}
     </div>
@@ -591,16 +716,16 @@ function TeamBoard({ v }: { v: StageView }) {
   const rows = [...v.teams].sort((a, b) => b.score - a.score || b.wins - a.wins || a.no - b.no);
   const lead = rows[0].score > 0 ? rows[0].no : 0;
   return (
-    <div className="absolute right-[8px] top-[150px] z-20 w-[168px] rotate-2 rounded-[14px] border-[3px] border-[#c9a45c] bg-[#fff8e1]/95 px-2 pb-2 pt-3 text-[#4a2c0e] shadow-[0_6px_10px_rgba(0,0,0,0.3)]">
+    <div className="hud-panel absolute right-[8px] top-[150px] z-20 w-[168px] rotate-2 px-2 pb-2 pt-3">
       <div className="absolute -top-[18px] left-1/2 -translate-x-1/2 text-[28px]">📌</div>
-      <div className="text-center text-[19px] font-extrabold leading-tight text-[#b45309]">🚩 Thi đua tổ</div>
+      <div className="text-center text-[19px] font-extrabold leading-tight" style={{ color: 'var(--panel-title)' }}>🚩 Thi đua tổ</div>
       <div className="mt-1 space-y-[4px]">
         {rows.map((t) => (
           <motion.div
             key={t.no}
             layout
             className="rounded-lg px-2 py-[2px] text-white shadow"
-            style={{ background: TEAM_COLOR[t.no - 1], outline: t.no === lead ? '3px solid #ffd84a' : undefined }}
+            style={{ background: TEAM_COLOR[t.no - 1], outline: t.no === lead ? '3px solid var(--text-gold)' : undefined }}
           >
             <div className="flex items-center justify-between text-[20px] font-extrabold leading-tight">
               <span>
@@ -1002,26 +1127,44 @@ function Recess({ v, left }: { v: StageView; left: number }) {
 // Cuối giờ ra chơi: lớp trưởng các tiết trước (mới nhất trên cùng), ai làm nhiều lần thì có số lần
 function SessionBoard({ v }: { v: StageView }) {
   return (
-    <div className="flex h-full flex-col items-center">
-      <div className="text-[48px] leading-none text-[#ffe680]">👑 Lớp trưởng các tiết</div>
-      {v.champions.length === 0 && <div className="mt-16 text-[36px]">Chưa có lớp trưởng</div>}
-      <div className="mt-3 w-full space-y-1">
-        {v.champions.map((c, i) => (
-          <motion.div
-            key={c.round}
-            initial={{ x: -40, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ delay: i * 0.2 }}
-            className="flex items-center gap-3 px-6 text-[36px]"
-          >
-            <span className="w-[110px] text-[26px] text-[#ffe680]">Tiết {c.round}</span>
-            <span className="flex-1 truncate">{c.nickname}</span>
-            {c.times > 1 && <span className="text-[26px] text-[#ffe680]">👑x{c.times}</span>}
-            <span>{c.score}đ</span>
-          </motion.div>
-        ))}
+    <div className="flex h-full flex-col items-center py-1">
+      <div className="flex items-center gap-2 text-[48px] font-extrabold leading-none" style={{ color: 'var(--text-gold)', textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
+        <span>👑</span>
+        <span>Lớp trưởng các tiết</span>
       </div>
-      <div className="mt-auto text-[28px] opacity-80">Tiết mới điểm làm lại, ai cũng có thể làm lớp trưởng!</div>
+      {v.champions.length === 0 ? (
+        <div className="my-auto flex flex-col items-center text-center opacity-85">
+          <div className="text-[48px]">🎖️</div>
+          <div className="mt-2 text-[34px] font-bold">Chưa có lớp trưởng</div>
+          <div className="mt-1 text-[26px] opacity-80">Ai điểm cao nhất tiết sẽ lên bảng vinh danh!</div>
+        </div>
+      ) : (
+        <div className="mt-4 w-full flex-1 space-y-2 overflow-hidden px-4">
+          {v.champions.map((c, i) => (
+            <motion.div
+              key={c.round}
+              initial={{ x: -30, opacity: 0, scale: 0.95 }}
+              animate={{ x: 0, opacity: 1, scale: 1 }}
+              transition={{ delay: i * 0.12, type: 'spring', stiffness: 240, damping: 18 }}
+              className="flex items-center gap-3 rounded-xl border border-white/15 bg-white/10 px-4 py-1.5 shadow-md backdrop-blur-[2px]"
+            >
+              <span className="rounded-full bg-[#ffd84a]/20 px-3 py-0.5 text-[24px] font-bold" style={{ color: 'var(--text-gold)' }}>
+                Tiết {c.round}
+              </span>
+              <span className="min-w-0 flex-1 truncate text-[34px] font-bold">{c.nickname}</span>
+              {c.times > 1 && (
+                <span className="rounded-full border border-amber-400/40 bg-amber-400/20 px-2 py-0.5 text-[22px] font-black" style={{ color: 'var(--text-gold)' }}>
+                  👑x{c.times}
+                </span>
+              )}
+              <span className="text-[34px] font-black tabular-nums" style={{ color: 'var(--text-gold)' }}>
+                {c.score}đ
+              </span>
+            </motion.div>
+          ))}
+        </div>
+      )}
+      <div className="mt-auto text-[26px] font-medium opacity-85">Tiết mới điểm làm lại, ai cũng có thể làm lớp trưởng!</div>
     </div>
   );
 }
@@ -1029,11 +1172,11 @@ function SessionBoard({ v }: { v: StageView }) {
 function WeekBoard({ v, left }: { v: StageView; left: number }) {
   return (
     <div className="flex h-full flex-col items-center">
-      <div className="text-[48px] leading-none text-[#ffe680]">Bảng vàng tuần này</div>
+      <div className="text-[48px] leading-none" style={{ color: 'var(--text-gold)' }}>Bảng vàng tuần này</div>
       <div className="mt-3 w-full space-y-1">
         {v.weekTop.slice(0, 5).map((s, i) => (
           <div key={s.username} className="flex items-center gap-3 px-6 text-[36px]">
-            <span className="w-12 text-[#ffe680]">{['🥇', '🥈', '🥉', '4', '5'][i]}</span>
+            <span className="w-12" style={{ color: 'var(--text-gold)' }}>{['🥇', '🥈', '🥉', '4', '5'][i]}</span>
             <span className="flex-1 truncate">{s.nickname}</span>
             <span>{s.points}đ</span>
           </div>
@@ -1044,53 +1187,53 @@ function WeekBoard({ v, left }: { v: StageView; left: number }) {
   );
 }
 
-// Góc trái trên đầu cô: tờ giấy ghim "Học sinh xuất sắc trong tiết", chỉ tính điểm tiết đang học, sang tiết mới làm lại
-// (chủ kênh đổi 2026-11-04, trước tính cả ngày). Ghế đã xếp theo điểm tiết nên lấy luôn 4 bạn đầu
+// Góc trái trên đầu cô: tờ giấy ghim "Học sinh xuất sắc hôm nay", xếp theo điểm cao nhất
 function DayTop({ v }: { v: StageView }) {
-  const rows = v.seats.filter((s) => s.score > 0).slice(0, 4).map((s) => ({ username: s.username, nickname: s.nickname, points: s.score })); // top 4 thôi để không che đầu cô
+  const rows = v.seats.filter((s) => s.score > 0).slice(0, 4).map((s) => ({ username: s.username, nickname: s.nickname, points: s.score }));
   return (
-    <div className="absolute left-[10px] top-[230px] z-20 w-[326px] -rotate-2 rounded-[14px] border-[3px] border-[#c9a45c] bg-[#fff8e1]/95 px-3 pb-2 pt-3 text-[#4a2c0e] shadow-[0_6px_10px_rgba(0,0,0,0.3)]">
-      <div className="absolute -top-[18px] left-1/2 -translate-x-1/2 text-[30px]">📌</div>
-      <div className="whitespace-nowrap text-center text-[21px] font-extrabold leading-tight text-[#b45309]">🏆 Học sinh xuất sắc trong tiết</div>
-      {rows.length === 0 && <div className="py-3 text-center text-[20px] text-[#8a6a3a]">Chưa có ai, trả lời đúng là lên bảng!</div>}
-      <div className="mt-1 space-y-[2px]">
-        {rows.map((r, i) => (
-          <motion.div key={r.username} layout className="flex items-center gap-2 text-[23px] leading-[28px]">
-            <span className="w-7 text-center">{['🥇', '🥈', '🥉', '4', '5'][i]}</span>
-            <span className="min-w-0 flex-1 truncate font-semibold">{r.nickname}</span>
-            <b className="text-[#c2410c]">{r.points}</b>
-          </motion.div>
-        ))}
+    <div className="hud-panel absolute left-[10px] top-[230px] z-20 w-[332px] -rotate-2 px-3 pb-2.5 pt-3">
+      <div className="absolute -top-[18px] left-1/2 -translate-x-1/2 text-[30px] drop-shadow-sm">📌</div>
+      <div className="whitespace-nowrap text-center text-[21px] font-black leading-tight" style={{ color: 'var(--panel-title)' }}>
+        🏆 Học sinh xuất sắc hôm nay
       </div>
+      {rows.length === 0 ? (
+        <div className="py-3 text-center text-[20px] font-medium opacity-75">Chưa có ai, trả lời đúng là lên bảng!</div>
+      ) : (
+        <div className="mt-1.5 space-y-[3px]">
+          {rows.map((r, i) => (
+            <motion.div
+              key={r.username}
+              layout
+              className={`flex items-center gap-2 rounded-lg px-2 py-0.5 text-[23px] leading-[28px] ${i === 0 ? 'bg-amber-400/15' : ''}`}
+            >
+              <span className="w-7 text-center text-[22px]">{['🥇', '🥈', '🥉', '4'][i]}</span>
+              <span className="min-w-0 flex-1 truncate font-bold">{r.nickname}</span>
+              <b className="tabular-nums font-black" style={{ color: 'var(--panel-points)' }}>{r.points}đ</b>
+            </motion.div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-// ---------- Cô giáo (cô Ngân, bản riêng: 16 tư thế, ảnh gốc trong nhan-vat/co-giao-ngan, tách nền ra public/assets/nv/co-ngan) ----------
+// ---------- Cô giáo (cô Ngân, bản riêng: 16 tư thế) ----------
 function teacherPose(v: StageView, now: number): string {
-  // có bạn cầm hoa đi lên: ngạc nhiên, tới bục đưa hoa thì cười che miệng
   if (v.walk) return now - v.walk.at < GAME.walkMs * 0.35 ? '13-ngac-nhien' : '06-cuoi';
-  if (now - v.lastFlowerAt < 3000) return '06-cuoi'; // được tặng hoa
+  if (now - v.lastFlowerAt < 3000) return '06-cuoi';
   if (v.birthday) return '09-mung';
   if (v.clapping) return '10-vo-tay';
-  if (v.loveFans > 0) return '07-tay-nguc'; // các bạn gõ "yêu cô"
+  if (v.loveFans > 0) return '07-tay-nguc';
   switch (v.phase) {
-    case 'team':
-    case 'intro':
-      return '04-vay-chao';
+    case 'team': case 'intro': return '04-vay-chao';
     case 'question':
-      if (!v.boardShown) return '02-gioi-thieu'; // đang đọc đề
-      if (v.correctCount > 0) return '08-ngon-cai'; // có bạn đúng rồi
-      return now % 8000 < 4000 ? '03-chi-bang' : '01-dung'; // chờ trả lời: lúc chỉ bảng, lúc đứng
-    case 'bonus':
-      return '12-gai-dau'; // chưa ai ra, thêm giờ
-    case 'reveal':
-      return v.correctCount === 0 ? '11-nhun-vai' : v.golden ? '09-mung' : '08-ngon-cai';
-    case 'praise':
-      return '09-mung';
-    case 'results':
-    case 'vote':
-      return '14-ngon-tro';
+      if (!v.boardShown) return '02-gioi-thieu';
+      if (v.correctCount > 0) return '08-ngon-cai';
+      return now % 8000 < 4000 ? '03-chi-bang' : '01-dung';
+    case 'bonus': return '12-gai-dau';
+    case 'reveal': return v.correctCount === 0 ? '11-nhun-vai' : v.golden ? '09-mung' : '08-ngon-cai';
+    case 'praise': return '09-mung';
+    case 'results': case 'vote': return '14-ngon-tro';
     case 'recess':
       if (v.recess?.stage === 'play') return v.recess.game === 'callup' ? '16-chi-trai' : '05-dang-tay';
       return v.recess?.stage === 'result' ? '15-chong-hong' : '07-tay-nguc';
@@ -1098,7 +1241,6 @@ function teacherPose(v: StageView, now: number): string {
   return '01-dung';
 }
 
-/** 2 game lớn: tư thế theo từng bước (ảnh nhan-vat/co-giao-ngan/duong-len-dinh-everest và Rung-Chuong-Dong) */
 function showPose(v: StageView, now: number): string {
   const sh = v.show!;
   const flower = now - v.lastFlowerAt < 3000 || !!v.walk;
@@ -1108,18 +1250,12 @@ function showPose(v: StageView, now: number): string {
     if (flower) return '10-cuoi-vui';
     if (v.clapping) return '15-vo-tay';
     switch (sh.step) {
-      case 'gather':
-        return alt ? '04-chao-doan-leo' : '12-vay-chao';
-      case 'section':
-        return sh.section.includes('Chạm đỉnh') ? '02-chi-len-dinh' : '03-chi-lo-trinh';
-      case 'stake':
-        return '16-tu-tin';
-      case 'code':
-        return !answering ? '05-doc-ban-do' : sh.code?.rescue ? '14-dong-vien' : alt ? '06-suy-nghi' : '01-dung-san-sang';
-      case 'codeReveal':
-        return sh.code?.solved ? '10-cuoi-vui' : '09-bat-ngo';
-      case 'honor':
-        return '13-cam-co-dinh';
+      case 'gather': return alt ? '04-chao-doan-leo' : '12-vay-chao';
+      case 'section': return sh.section.includes('Chạm đỉnh') ? '02-chi-len-dinh' : '03-chi-lo-trinh';
+      case 'stake': return '16-tu-tin';
+      case 'code': return !answering ? '05-doc-ban-do' : sh.code?.rescue ? '14-dong-vien' : alt ? '06-suy-nghi' : '01-dung-san-sang';
+      case 'codeReveal': return sh.code?.solved ? '10-cuoi-vui' : '09-bat-ngo';
+      case 'honor': return '13-cam-co-dinh';
       default:
         if (sh.stage === 'reveal') return sh.lastRight > 0 ? '07-like' : '09-bat-ngo';
         if (!answering) return '05-doc-ban-do';
@@ -1130,12 +1266,9 @@ function showPose(v: StageView, now: number): string {
   if (flower) return '06-rung-chuong-cuoi-tuoi';
   if (v.clapping) return '07-rung-chuong-hao-hung';
   switch (sh.step) {
-    case 'gather':
-      return alt ? '12-moi-thi-sinh' : '13-vay-chao-cam-chuong';
-    case 'section':
-      return sh.section.includes('Chuông') ? '15-chuan-bi-rung' : '09-bao-hieu-bat-dau';
-    case 'honor':
-      return alt ? '10-mung-chien-thang' : '03-rung-chuong-cao';
+    case 'gather': return alt ? '12-moi-thi-sinh' : '13-vay-chao-cam-chuong';
+    case 'section': return sh.section.includes('Chuông') ? '15-chuan-bi-rung' : '09-bao-hieu-bat-dau';
+    case 'honor': return alt ? '10-mung-chien-thang' : '03-rung-chuong-cao';
     default:
       if (sh.stage === 'reveal') {
         if (sh.lastRight === 0) return '11-bat-ngo-nghe-chuong';
@@ -1149,7 +1282,6 @@ function showPose(v: StageView, now: number): string {
 function Teacher({ v, now }: { v: StageView; now: number }) {
   const gotFlower = now - v.lastFlowerAt < 3000;
   if (THAY) return <TeacherThay v={v} now={now} gotFlower={gotFlower} />;
-  // trang phục: bộ trắng ở thư mục gốc, bộ khác ở thư mục con; 2 game lớn mặc bộ của game
   const src = v.show
     ? `/assets/nv/co-ngan/${v.show.kind}/${showPose(v, now)}.webp`
     : v.outfit === 'trang' || !v.outfit
@@ -1158,19 +1290,12 @@ function Teacher({ v, now }: { v: StageView; now: number }) {
   return (
     <div className="absolute left-[86px] top-[410px] h-[490px] w-[320px]">
       <img src={src} className="h-full w-full object-contain object-bottom drop-shadow-[0_10px_8px_rgba(0,0,0,0.25)]" />
-      {/* bảng tên cài ngực áo (trên đầu cô là bảng Học sinh xuất sắc nên không đặt ở đó) */}
       <div className="absolute left-1/2 top-[128px] z-10 -translate-x-1/2 -rotate-3 whitespace-nowrap rounded-full border-[3px] border-[#fff6dd] bg-gradient-to-b from-[#ff6b9a] to-[#d63384] px-3 py-[1px] text-[22px] font-extrabold text-white shadow-[0_3px_0_#9d174d]">
         🌸 {v.cfg.teacherName}
       </div>
       <AnimatePresence>
         {gotFlower && (
-          <motion.div
-            key={v.lastFlowerAt}
-            initial={{ scale: 0, y: 80 }}
-            animate={{ scale: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="absolute left-[130px] top-[150px] text-[80px]"
-          >
+          <motion.div key={v.lastFlowerAt} initial={{ scale: 0, y: 80 }} animate={{ scale: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute left-[130px] top-[150px] text-[80px]">
             💐
           </motion.div>
         )}
@@ -1179,7 +1304,6 @@ function Teacher({ v, now }: { v: StageView; now: number }) {
   );
 }
 
-/** Thầy giáo đứng lớp: cùng chỗ đứng với cô, bảng tên xanh */
 function TeacherThay({ v, now, gotFlower }: { v: StageView; now: number; gotFlower: boolean }) {
   const pose = v.show ? thayShowPose(v, now) : (THAY_POSE[teacherPose(v, now)] ?? '01-dung');
   return (
@@ -1382,35 +1506,67 @@ function DanceBanner({ v }: { v: StageView }) {
 
 // ---------- Ai nhanh nhất câu này ----------
 // Hết câu (hiện đáp án): bảng Top 5 nhanh nhất, thời gian tới mili giây + điểm được cộng; ai đúng chậm hơn +1
-const secText = (ms: number) => `${(ms / 1000).toFixed(3).replace('.', ',')} giây`;
+const secText = (ms: number) => `${(ms / 1000).toFixed(3).replace('.', ',')}s`;
 function FastestBoard({ v }: { v: StageView }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="absolute left-[378px] top-[618px] z-30 w-[460px] overflow-hidden rounded-[16px] border-[3px] border-[#7a2e0e] bg-[#fff6dd]/97 shadow-xl"
+      initial={{ opacity: 0, y: 25, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ type: 'spring', stiffness: 260, damping: 18 }}
+      className="absolute left-[368px] top-[614px] z-30 w-[480px] overflow-hidden rounded-[20px] shadow-2xl backdrop-blur-sm"
+      style={{
+        background: 'var(--fast-bg)',
+        border: '3px solid var(--fast-border)',
+        color: 'var(--fast-text)',
+      }}
     >
-      <div className="flex items-center justify-between bg-[#7a2e0e] px-3 py-[2px] text-[25px] font-bold text-[#ffe9b8]">
-        <span>⚡ Top {GAME.fastestShown} nhanh nhất</span>
-        <span>{v.correctCount} bạn đúng</span>
+      <div
+        className="flex items-center justify-between px-4 py-2 text-[26px] font-black"
+        style={{
+          background: 'var(--fast-header-bg)',
+          color: 'var(--fast-header-text)',
+        }}
+      >
+        <span className="flex items-center gap-2">
+          <span>⚡</span>
+          <span>Top {GAME.fastestShown} nhanh nhất</span>
+        </span>
+        <span className="rounded-full bg-white/20 px-3 py-0.5 text-[21px] font-bold">
+          {v.correctCount} bạn đúng
+        </span>
       </div>
-      {v.fastest.length === 0 && <div className="py-3 text-center text-[22px] text-[#8a6a3a]">Chưa ai đúng câu này</div>}
-      {v.fastest.map((a, i) => (
-        <motion.div
-          key={a.username}
-          initial={{ opacity: 0, x: -30 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.15 * i }}
-          className={`flex items-center gap-2 px-3 text-[29px] leading-[42px] text-[#4a2c0e] ${i % 2 ? 'bg-[#f6e3b4]/60' : ''}`}
-        >
-          <span className="w-9 shrink-0 text-center text-[28px]">{['🥇', '🥈', '🥉', '4', '5'][i]}</span>
-          <span className="min-w-0 flex-1 truncate font-semibold">{a.nickname}</span>
-          <span className="shrink-0 whitespace-nowrap text-right text-[24px] font-bold tabular-nums text-[#6b4a22]">{secText(a.ms)}</span>
-          <b className="w-[58px] shrink-0 text-right text-[30px] text-[#c2410c]">+{a.points}</b>
-        </motion.div>
-      ))}
+      {v.fastest.length === 0 ? (
+        <div className="py-4 text-center text-[24px] font-medium opacity-75">Chưa ai đúng câu này</div>
+      ) : (
+        <div className="space-y-[2px] p-1.5">
+          {v.fastest.map((a, i) => (
+            <motion.div
+              key={a.username}
+              initial={{ opacity: 0, x: -24 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 * i, type: 'spring', stiffness: 220, damping: 16 }}
+              className="flex items-center gap-2 rounded-xl px-3 py-1 text-[27px] leading-[38px]"
+              style={{ background: i % 2 ? 'var(--fast-zebra)' : 'transparent' }}
+            >
+              <span className="w-8 shrink-0 text-center text-[26px] font-black">
+                {['🥇', '🥈', '🥉', '4', '5'][i]}
+              </span>
+              <span className="min-w-0 flex-1 truncate font-bold">{a.nickname}</span>
+              <span className="shrink-0 whitespace-nowrap text-right text-[22px] font-semibold tabular-nums opacity-85" style={{ color: 'var(--fast-subtext)' }}>
+                ⏱ {secText(a.ms)}
+              </span>
+              <b className="w-[68px] shrink-0 text-right text-[28px] font-black tabular-nums" style={{ color: 'var(--fast-points)' }}>
+                +{a.points}
+              </b>
+            </motion.div>
+          ))}
+        </div>
+      )}
       {v.laterCount > 0 && (
-        <div className="border-t border-[#e9d8a6] px-3 text-center text-[22px] font-semibold leading-[34px] text-[#6b4a22]">
+        <div
+          className="border-t px-3 py-1 text-center text-[21px] font-bold leading-normal"
+          style={{ borderColor: 'var(--fast-border)', color: 'var(--fast-subtext)' }}
+        >
           {v.laterCount} bạn khác đúng chậm hơn: mỗi bạn +{v.laterPoints}
         </div>
       )}
@@ -1423,30 +1579,60 @@ function Podium({ v }: { v: StageView }) {
   if (v.phase === 'reveal') return <FastestBoard v={v} />;
   if (v.phase !== 'question' && v.phase !== 'bonus') return null;
   return (
-    <div className="absolute left-[417px] top-[634px] w-[420px]">
-      <div className="flex items-center justify-between rounded-t-[14px] bg-[#7a2e0e] px-3 py-[1px] text-[19px] font-bold text-[#ffe9b8]">
-        <span>⚡ Nhanh nhất</span>
-        <span>{v.correctCount} bạn đã đúng</span>
+    <div className="absolute left-[400px] top-[630px] w-[454px]">
+      <div
+        className="flex items-center justify-between rounded-t-[16px] px-3.5 py-1 text-[21px] font-black shadow-sm"
+        style={{
+          background: 'var(--fast-header-bg)',
+          color: 'var(--fast-header-text)',
+        }}
+      >
+        <span className="flex items-center gap-1.5">
+          <span>⚡</span>
+          <span>Nhanh nhất</span>
+        </span>
+        <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-[18px] font-bold">
+          {v.correctCount} bạn đã đúng
+        </span>
       </div>
-      <div className="flex h-[48px] items-center gap-1 rounded-b-[14px] bg-[#fff6dd]/95 px-2 shadow-lg">
-        {v.correctTop.length === 0 && <div className="w-full text-center text-[20px] text-[#8a6a3a]">Chưa ai đoán ra…</div>}
-        <AnimatePresence initial={false}>
-          {v.correctTop.map((a, i) => (
-            <motion.div
-              key={a.username}
-              layout
-              initial={{ opacity: 0, scale: 0.6 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="flex w-1/3 min-w-0 items-center gap-1 text-[17px] text-[#4a2c0e]"
-            >
-              <span className="text-[20px]">{['🥇', '🥈', '🥉'][i]}</span>
-              <div className="min-w-0 flex-1 leading-tight">
-                <div className="truncate font-semibold">{a.nickname}</div>
-                <div className="font-extrabold text-[#c2410c]">+{a.points}</div>
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
+      <div
+        className="flex h-[54px] items-center gap-2 rounded-b-[16px] border-b-2 border-x-2 px-3 shadow-xl backdrop-blur-sm"
+        style={{
+          background: 'var(--fast-bg)',
+          borderColor: 'var(--fast-border)',
+          color: 'var(--fast-text)',
+        }}
+      >
+        {v.correctTop.length === 0 ? (
+          <div className="flex w-full items-center justify-center gap-2 text-[21px] font-semibold opacity-75">
+            <motion.span animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 1.2, repeat: Infinity }}>
+              💭
+            </motion.span>
+            <span>Chưa ai đoán ra…</span>
+          </div>
+        ) : (
+          <AnimatePresence initial={false}>
+            {v.correctTop.map((a, i) => (
+              <motion.div
+                key={a.username}
+                layout
+                initial={{ opacity: 0, scale: 0.5, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.5 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 18 }}
+                className="flex w-1/3 min-w-0 items-center gap-1.5 rounded-lg bg-white/20 px-1.5 py-1 text-[18px]"
+              >
+                <span className="text-[22px]">{['🥇', '🥈', '🥉'][i]}</span>
+                <div className="min-w-0 flex-1 leading-tight">
+                  <div className="truncate font-bold">{a.nickname}</div>
+                  <div className="font-black text-[17px] tabular-nums" style={{ color: 'var(--fast-points)' }}>
+                    +{a.points}
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        )}
       </div>
     </div>
   );
@@ -1484,7 +1670,7 @@ function studentPose(s: StageView['seats'][number], v: StageView, rank: number, 
   if (s.answered === 'wrong') return asking ? 'buon' : 'ngac';
   if (asking) return now - s.lastActive < 2500 ? 'tay' : 'nghi';
   if ((v.phase === 'results' || v.phase === 'praise') && rank < 3 && s.score > 0) return 'vui';
-  if (now - (s.desk[s.desk.length - 1]?.at ?? 0) < 3000) return 'vui'; // vừa được cô tặng quà
+  if (now - (s.desk[s.desk.length - 1]?.at ?? 0) < 3000) return 'vui';
   return now - s.lastActive < 2500 ? 'tay' : 'dung';
 }
 
@@ -1506,11 +1692,11 @@ function seatBox(i: number) {
   const show = h * SHOW;
   const cx = row.x1 + ((k + 0.5) * (row.x2 - row.x1)) / Math.max(1, row.n);
   const x = cx * K - w / 2;
-  const y = (row.y + 0.64 * (row.b - row.y)) * K - show; // ngồi trên ghế băng, lưng quay ra khán giả
+  const y = (row.y + 0.64 * (row.b - row.y)) * K - show;
   return { scale, w, h, show, x, y, ri, k, gap: ((row.x2 - row.x1) * K) / Math.max(1, row.n) };
 }
 
-/** Bàn dài + ghế băng của 1 dãy (che hẳn dãy bàn lẻ vẽ sẵn trong ảnh nền) */
+/** Bàn dài + ghế băng của 1 dãy */
 function LongDesk({ ri }: { ri: number }) {
   const r = ROWS[ri];
   const h = r.b - r.y;
@@ -1518,20 +1704,15 @@ function LongDesk({ ri }: { ri: number }) {
   const Y = (f: number) => r.y + f * h;
   const nLegs = Math.max(2, Math.floor((r.n || 8) / 2) + 1);
   const legs = Array.from({ length: nLegs }, (_, j) => x1 + 22 + (j * (x2 - x1 - 44)) / (nLegs - 1));
-  // màu gỗ hạ vài tông so với bản đầu (chủ kênh chỉnh 2026-11-04: bàn sáng quá, tên và quà trên bàn khó nhìn)
   const line = { stroke: '#57320f', strokeWidth: 3, strokeLinejoin: 'round' as const };
   return (
     <svg className="pointer-events-none absolute left-0 top-0" width={1080} height={1920} viewBox="0 0 941 1672" style={{ zIndex: 9 + ri }}>
-      {/* bóng dưới bàn ghế: che chân bàn lẻ trong ảnh nền */}
       <rect x={x1 - 2} y={Y(0.5)} width={x2 - x1 + 4} height={h * 0.52} rx={10} fill="#9c5a2c" />
-      {/* chân bàn 2 đầu */}
       <rect x={x1 + 6} y={Y(0.34)} width={14} height={h * 0.62} fill="#70411b" {...line} />
       <rect x={x2 - 20} y={Y(0.34)} width={14} height={h * 0.62} fill="#70411b" {...line} />
-      {/* mặt bàn + cạnh trước + tấm chắn trước bàn */}
       <rect x={x1 + 14} y={Y(0.36)} width={x2 - x1 - 28} height={h * 0.26} fill="#965c22" {...line} />
       <polygon points={`${x1 + 8},${r.y} ${x2 - 8},${r.y} ${x2},${Y(0.28)} ${x1},${Y(0.28)}`} fill="#cf9a4c" {...line} />
       <rect x={x1} y={Y(0.28)} width={x2 - x1} height={h * 0.08} fill="#b5772f" {...line} />
-      {/* ghế băng */}
       {legs.map((lx) => (
         <rect key={lx} x={lx - 5} y={Y(0.74)} width={10} height={h * 0.24} fill="#5f3816" />
       ))}
@@ -1552,21 +1733,18 @@ function Students({ v, now }: { v: StageView; now: number }) {
       ))}
       {v.seats.map((s, i) => {
         const { scale, w, h, show, x, y, ri, k, gap } = seatBox(i);
-        // bảng tên so le: bạn thứ 2, 4, 6... trong dãy tên thấp xuống 1 tầng, nên 2 tên cùng tầng cách nhau 2 ghế, hiện đủ tên dài hơn
+        // bảng tên so le: bạn thứ 2, 4, 6... trong dãy tên thấp xuống 1 tầng
         const low = k % 2 === 1;
         const pose = studentPose(s, v, i, now);
         const g = s.girl ? 'nu' : 'nam';
         const hd = HEAD[g];
         const called = v.recess?.game === 'callup' && v.recess.callUser === s.username;
-        // đang lên bục (tặng hoa / bị phạt): ghế trống, nhân vật vẽ ở chỗ khác
-        // đang nhảy múa trước bảng, hoặc đang được thầy giám thị cho vào lớp (chưa đi tới ghế): ghế trống
         const entering = v.escort?.in?.username === s.username && now - v.escort.at < GAME.escortMs * 0.95;
         const away = s.standing || v.walk?.username === s.username || dancing.has(s.username) || entering;
         return (
           <motion.div
             key={s.username}
             initial={{ opacity: 0, left: x, top: y + 40 }}
-            // bạn đúng đầu tiên: nhảy lên vui mừng
             animate={{ opacity: away ? 0 : 1, left: x, top: s.username === first ? [y, y - 34, y, y - 18, y] : y }}
             transition={s.username === first ? { top: { duration: 0.9 } } : { type: 'spring', stiffness: 120, damping: 18 }}
             className={`absolute ${called ? 'called-up' : ''}`}
@@ -1582,13 +1760,13 @@ function Students({ v, now }: { v: StageView; now: number }) {
             {s.answered === 'right' && s.gain > 0 && (
               <motion.div
                 key={`gain${v.qNo}`}
-                initial={{ y: 0, opacity: 1, scale: 0.6 }}
-                animate={{ y: -90, opacity: [1, 1, 0], scale: 1.2 }}
-                transition={{ duration: 1.8, ease: 'easeOut' }}
-                className="pointer-events-none absolute left-1/2 top-0 z-40 -translate-x-1/2 whitespace-nowrap font-extrabold text-[#fde047] [text-shadow:0_2px_0_#7a2e0e,0_0_6px_#000]"
-                style={{ fontSize: 34 * scale }}
+                initial={{ y: 0, opacity: 0, scale: 0.3 }}
+                animate={{ y: [-10, -55, -95], opacity: [0, 1, 1, 0], scale: [0.3, 1.4, 1.15] }}
+                transition={{ duration: 1.6, times: [0, 0.15, 0.7, 1], ease: 'easeOut' }}
+                className="pointer-events-none absolute left-1/2 top-0 z-40 -translate-x-1/2 whitespace-nowrap font-black text-[#fde047] [text-shadow:0_3px_0_#7a2e0e,0_0_12px_rgba(250,204,21,0.85)]"
+                style={{ fontSize: 36 * scale }}
               >
-                +{s.gain}
+                +{s.gain} ⭐
               </motion.div>
             )}
             {s.answered === 'wrong' && <div className="badge bg-[#dc2626]">✗</div>}
@@ -1615,7 +1793,6 @@ function Students({ v, now }: { v: StageView; now: number }) {
               {s.showIcons && <span className="mr-1 whitespace-nowrap">{s.showIcons}</span>}
               {called && <span className="mr-1">📢</span>}
               {s.days >= 2 && <span className="mr-1 whitespace-nowrap">🎒{s.days}</span>}
-              {/* học bạ: lớp mấy (lớp 1 thì khỏi hiện cho gọn), tốt nghiệp đội mũ */}
               {s.grade >= 2 && (
                 <span className="mr-1 shrink-0 rounded-full bg-[#2563eb] px-[5px] font-extrabold text-white">{s.grade > 12 ? '🎓' : `L${s.grade}`}</span>
               )}
@@ -1770,17 +1947,17 @@ function DeskGifts({ desk, x, y, w, show, scale }: { desk: StageView['seats'][nu
 function TalkTop({ v }: { v: StageView }) {
   const rows = (v.talkTop ?? []).slice(0, 5);
   return (
-    <div className="absolute left-[842px] top-[616px] z-[8] w-[232px] rotate-1 rounded-[14px] border-[3px] border-[#c9a45c] bg-[#fff8e1]/95 px-2 pb-2 pt-3 text-[#4a2c0e] shadow-[0_6px_10px_rgba(0,0,0,0.3)]">
+    <div className="hud-panel absolute left-[842px] top-[616px] z-[8] w-[232px] rotate-1 px-2 pb-2 pt-3">
       <div className="absolute -top-[18px] left-1/2 -translate-x-1/2 text-[28px]">📌</div>
-      <div className="whitespace-nowrap text-center text-[22px] font-extrabold leading-tight text-[#b45309]">💬 Top tương tác</div>
-      {rows.length === 0 && <div className="py-2 text-center text-[17px] text-[#8a6a3a]">Bình luận để lên bảng nha!</div>}
+      <div className="whitespace-nowrap text-center text-[22px] font-extrabold leading-tight" style={{ color: 'var(--panel-title)' }}>💬 Top tương tác</div>
+      {rows.length === 0 && <div className="py-2 text-center text-[17px] opacity-75">Bình luận để lên bảng nha!</div>}
       <div className="mt-1 space-y-[1px]">
         {rows.map((r, i) => (
           <motion.div key={r.username} layout className="flex items-center gap-1 text-[22px] leading-[28px]">
             <span className="w-6 text-center">{['🥇', '🥈', '🥉', '4', '5'][i]}</span>
             <span className="min-w-0 flex-1 truncate font-semibold">{r.nickname}</span>
             {/* hiện điểm tương tác, không ghi cách tính (chủ kênh đổi 2026-11-04) */}
-            <b className="text-[#c2410c]">{r.points}</b>
+            <b style={{ color: 'var(--panel-points)' }}>{r.points}</b>
           </motion.div>
         ))}
       </div>

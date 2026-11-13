@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { emitTest, sendControl } from '../live/page';
 import type { StageView } from './useGame';
 import { GAME, shownTeacherName, type RoomCfg } from './config';
+import { THEMES, getActiveTheme, applyTheme, type ThemeName } from '../theme';
+import { GON_THEMES, getGonTheme, applyGonTheme, type GonThemeName } from '../skins/gon/theme';
 
 // Nút riêng của Lớp Học Chữ ở trang điều khiển: điều khiển ván + giả lập phòng đông để thử bot
 const HO = ['Nguyễn', 'Trần', 'Lê', 'Phạm', 'Hoàng', 'Vũ', 'Đặng', 'Bùi'];
@@ -13,6 +15,15 @@ const shuffleWord = (w: string) => [...w].sort(() => Math.random() - 0.5).join('
 // Cài đặt lớp: tên + giọng cô giáo, chữ bảng đỏ, bật tắt 2 game lớn, ảnh nền. Đổi là trang stage đổi ngay, không cần tải lại
 function RoomSettings() {
   const [cfg, setCfg] = useState<RoomCfg>(GAME.defaultRoom);
+  const [skin, setSkin] = useState<'classic' | 'gon'>(() => {
+    if (typeof window === 'undefined') return 'classic';
+    const param = new URLSearchParams(window.location.search).get('skin');
+    if (param === 'gon') return 'gon';
+    if (param === 'classic') return 'classic';
+    return (localStorage.getItem('lop_hoc_skin') as 'classic' | 'gon') || 'classic';
+  });
+  const [theme, setTheme] = useState<ThemeName>(() => getActiveTheme());
+  const [gonTheme, setGonTheme] = useState<GonThemeName>(() => getGonTheme());
   const [name, setName] = useState('');
   const [motto, setMotto] = useState('');
   const [mins, setMins] = useState('');
@@ -163,6 +174,105 @@ function RoomSettings() {
         {cfg.bg && <Btn onClick={resetBg}>Về nền gốc</Btn>}
         <span className="text-slate-500">Ảnh dọc 9:16, tối đa 12 MB</span>
       </div>
+      <div className={row}>
+        <span className={label}>🖼️ Kiểu Skin</span>
+        <select
+          className={input}
+          value={skin}
+          onChange={(e) => {
+            const next = e.target.value as 'classic' | 'gon';
+            setSkin(next);
+            localStorage.setItem('lop_hoc_skin', next);
+            const url = new URL(window.location.href);
+            url.searchParams.set('skin', next);
+            window.history.replaceState({}, '', url.toString());
+            window.location.reload();
+          }}
+        >
+          <option value="classic">Cổ điển (Lớp học gốc)</option>
+          <option value="gon">Gọn (Bản thiết kế mới)</option>
+        </select>
+        <span className="text-slate-500">{skin === 'gon' ? 'Canvas 1080x1920 gọn gàng' : 'Bảng đen 941x1672'}</span>
+      </div>
+      <div className={row}>
+        <span className={label}>🎨 Giao diện</span>
+        {skin === 'gon' ? (
+          <select
+            className={input}
+            value={gonTheme}
+            onChange={(e) => {
+              const next = e.target.value as GonThemeName;
+              setGonTheme(next);
+              localStorage.setItem('lop_hoc_gon_theme', next);
+              applyGonTheme(next);
+              const url = new URL(window.location.href);
+              url.searchParams.set('theme', next);
+              window.history.replaceState({}, '', url.toString());
+            }}
+          >
+            {Object.values(GON_THEMES).map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name} (?theme={t.id})
+              </option>
+            ))}
+          </select>
+        ) : (
+          <select
+            className={input}
+            value={theme}
+            onChange={(e) => {
+              const next = e.target.value as ThemeName;
+              setTheme(next);
+              localStorage.setItem('lop_hoc_theme', next);
+              applyTheme(next);
+              const url = new URL(window.location.href);
+              url.searchParams.set('theme', next);
+              window.history.replaceState({}, '', url.toString());
+            }}
+          >
+            {Object.values(THEMES).map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name} (?theme={t.id})
+              </option>
+            ))}
+          </select>
+        )}
+        <span className="text-slate-500">
+          {skin === 'gon' ? GON_THEMES[gonTheme].description : THEMES[theme].description}
+        </span>
+      </div>
+      {skin === 'gon' && (
+        <div className={row}>
+          <span className={label}>👁️ Xem thử UI</span>
+          <div className="flex flex-wrap gap-1.5">
+            {[
+              { id: '', label: 'Bình thường' },
+              { id: 'reveal', label: '1. Hiện đáp án' },
+              { id: 'recess', label: '2. Ra chơi' },
+              { id: 'monitor', label: '3. Lớp trưởng' },
+              { id: 'full', label: '4. Đầy lớp' },
+              { id: 'flower', label: '5. Tặng hoa 🌹' },
+              { id: 'gift', label: '6. Quà to 🎁' },
+              { id: 'everest', label: '7. Everest 🏔️' },
+              { id: 'chuong', label: '8. Chuông đồng 🔔' },
+            ].map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                className="rounded bg-slate-800 px-2.5 py-1 text-xs font-semibold text-slate-200 hover:bg-slate-700"
+                onClick={() => {
+                  const url = new URL(window.location.href);
+                  if (s.id) url.searchParams.set('state', s.id);
+                  else url.searchParams.delete('state');
+                  window.location.href = url.toString();
+                }}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

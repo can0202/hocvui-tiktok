@@ -1,16 +1,318 @@
-/* Chữ phấn trên bảng đen */
-.chalk {
-  font-family: 'Patrick Hand', 'Be Vietnam Pro', sans-serif;
-  text-shadow: 0 0 1px rgba(255, 255, 255, 0.5), 1px 1px 0 rgba(255, 255, 255, 0.08);
+/* ==========================================================================
+   THEME DESIGN TOKENS (CSS VARIABLES)
+   Hỗ trợ 4 theme: classic (mặc định), pastel, neon, notebook
+   ========================================================================== */
+
+:root,
+[data-theme="classic"] {
+  /* Bảng & Phấn */
+  --board-bg: #1d4a38;
+  --board-border: #7a4a1d;
+  --board-border-width: 12px;
+  --board-radius: 10px;
+  --board-shadow: 0 8px 14px rgba(0, 0, 0, 0.4);
+  --board-text: #f4f1e6;
+  --board-pattern: none;
+  --chalk-font: 'Patrick Hand', 'Be Vietnam Pro', sans-serif;
+  --chalk-shadow: 0 0 1px rgba(255, 255, 255, 0.5), 1px 1px 0 rgba(255, 255, 255, 0.08);
+
+  /* Chữ nhấn màu */
+  --text-gold: #ffe680;
+  --text-correct: #9df29d;
+  --text-urgent: #ff8a7a;
+
+  /* Đồng hồ đếm ngược */
+  --timer-border: #f4f1e6;
+  --timer-text: #f4f1e6;
+  --timer-urgent-border: #ff8a7a;
+  --timer-urgent-bg: rgba(255, 138, 122, 0.2);
+  --timer-urgent-text: #ff8a7a;
+
+  /* Miếng chữ xáo trộn (Tile) */
+  --tile-bg: linear-gradient(180deg, #fbe7b9 0%, #efc77a 100%);
+  --tile-text: #5b3512;
+  --tile-radius: 12px;
+  --tile-border: none;
+  --tile-shadow: 0 5px 0 #a8742f, 0 8px 10px rgba(0, 0, 0, 0.35);
+
+  /* Ô gạch chân đáp án (Slots) */
+  --slot-border: #f4f1e6;
+  --slot-reveal-border: #9df29d;
+  --slot-reveal-text: #9df29d;
+
+  /* Bảng hiệu lớp (Header) */
+  --header-bg: #f6e3b4;
+  --header-border: #7a4a1d;
+  --header-title: #7a2e0e;
+  --header-sub: #6b4a22;
+  --header-shadow: 0 8px 0 #5b3512;
+
+  /* Khẩu hiệu (Motto) */
+  --motto-bg: linear-gradient(180deg, #c81e1e 0%, #a51515 100%);
+  --motto-border: #f2c14e;
+  --motto-text: #ffd84a;
+  --motto-text-shadow: 0 2px 0 #7a0e0e;
+  --motto-shadow: 0 6px 10px rgba(0, 0, 0, 0.3);
+
+  /* Thẻ thông tin ghim (Panels: DayTop, TeamBoard, ClassFund, GiftMenu, TalkTop) */
+  --panel-bg: rgba(255, 248, 225, 0.95);
+  --panel-border: #c9a45c;
+  --panel-radius: 14px;
+  --panel-shadow: 0 6px 10px rgba(0, 0, 0, 0.3);
+  --panel-title: #b45309;
+  --panel-text: #4a2c0e;
+  --panel-points: #c2410c;
+
+  /* Bảng Nhanh nhất / Vinh danh (Fastest / Podium) */
+  --fast-bg: rgba(255, 246, 221, 0.97);
+  --fast-border: #7a2e0e;
+  --fast-header-bg: #7a2e0e;
+  --fast-header-text: #ffe9b8;
+  --fast-zebra: rgba(246, 227, 180, 0.6);
+  --fast-text: #4a2c0e;
+  --fast-subtext: #6b4a22;
+  --fast-points: #c2410c;
+
+  /* Bảng tên học sinh (Nametag) */
+  --tag-bg: rgba(255, 255, 255, 0.95);
+  --tag-border: transparent;
+  --tag-text: #3b2410;
+  --tag-rank-bg: #f59e0b;
+  --tag-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-/* Miếng chữ gỗ xáo trộn */
+/* ==========================================================================
+   THEME 1: PASTEL (Ngọt ngào, êm dịu, kem sữa & hoa quả)
+   ========================================================================== */
+[data-theme="pastel"] {
+  --board-bg: #2d463e;
+  --board-border: #fbcfe8;
+  --board-border-width: 10px;
+  --board-radius: 20px;
+  --board-shadow: 0 10px 25px rgba(244, 114, 182, 0.3);
+  --board-text: #fdfcf7;
+  --board-pattern: radial-gradient(#ffffff18 1px, transparent 1px);
+  --chalk-font: 'Patrick Hand', 'Be Vietnam Pro', sans-serif;
+  --chalk-shadow: 0 0 2px rgba(255, 255, 255, 0.6);
+
+  --text-gold: #fef08a;
+  --text-correct: #a7f3d0;
+  --text-urgent: #fda4af;
+
+  --timer-border: #fbcfe8;
+  --timer-text: #fdf2f8;
+  --timer-urgent-border: #fb7185;
+  --timer-urgent-bg: rgba(251, 113, 133, 0.25);
+  --timer-urgent-text: #fda4af;
+
+  --tile-bg: linear-gradient(180deg, #fed7aa 0%, #fbcfe8 100%);
+  --tile-text: #831843;
+  --tile-radius: 18px;
+  --tile-border: 2px solid #f472b6;
+  --tile-shadow: 0 6px 0 #db2777, 0 10px 14px rgba(219, 39, 119, 0.25);
+
+  --slot-border: #fbcfe8;
+  --slot-reveal-border: #6ee7b7;
+  --slot-reveal-text: #a7f3d0;
+
+  --header-bg: #fff1f2;
+  --header-border: #f472b6;
+  --header-title: #9d174d;
+  --header-sub: #be185d;
+  --header-shadow: 0 8px 0 #db2777;
+
+  --motto-bg: linear-gradient(180deg, #fb7185 0%, #e11d48 100%);
+  --motto-border: #fecdd3;
+  --motto-text: #fff1f2;
+  --motto-text-shadow: 0 2px 0 #9f1239;
+  --motto-shadow: 0 6px 14px rgba(225, 29, 72, 0.35);
+
+  --panel-bg: rgba(255, 248, 250, 0.96);
+  --panel-border: #f472b6;
+  --panel-radius: 20px;
+  --panel-shadow: 0 8px 18px rgba(244, 114, 182, 0.25);
+  --panel-title: #db2777;
+  --panel-text: #475569;
+  --panel-points: #e11d48;
+
+  --fast-bg: rgba(255, 245, 247, 0.98);
+  --fast-border: #fb7185;
+  --fast-header-bg: #f43f5e;
+  --fast-header-text: #fff1f2;
+  --fast-zebra: rgba(254, 205, 211, 0.45);
+  --fast-text: #4c0519;
+  --fast-subtext: #9f1239;
+  --fast-points: #e11d48;
+
+  --tag-bg: rgba(255, 255, 255, 0.96);
+  --tag-border: 1.5px solid #fbcfe8;
+  --tag-text: #475569;
+  --tag-rank-bg: #ec4899;
+  --tag-shadow: 0 3px 6px rgba(236, 72, 153, 0.2);
+}
+
+/* ==========================================================================
+   THEME 2: NEON (Cyberpunk Arcade, tương phản tối và viền phát sáng)
+   ========================================================================== */
+[data-theme="neon"] {
+  --board-bg: #090d16;
+  --board-border: #06b6d4;
+  --board-border-width: 6px;
+  --board-radius: 14px;
+  --board-shadow: 0 0 25px rgba(6, 182, 212, 0.45), inset 0 0 20px rgba(6, 182, 212, 0.15);
+  --board-text: #f8fafc;
+  --board-pattern: radial-gradient(rgba(6, 182, 212, 0.2) 1px, transparent 1px);
+  --chalk-font: 'Be Vietnam Pro', sans-serif;
+  --chalk-shadow: 0 0 8px rgba(6, 182, 212, 0.8), 0 0 2px #fff;
+
+  --text-gold: #38bdf8;
+  --text-correct: #4ade80;
+  --text-urgent: #f43f5e;
+
+  --timer-border: #06b6d4;
+  --timer-text: #38bdf8;
+  --timer-urgent-border: #f43f5e;
+  --timer-urgent-bg: rgba(244, 63, 94, 0.25);
+  --timer-urgent-text: #f43f5e;
+
+  --tile-bg: linear-gradient(180deg, #1e1b4b 0%, #0f172a 100%);
+  --tile-text: #38bdf8;
+  --tile-radius: 12px;
+  --tile-border: 2px solid #06b6d4;
+  --tile-shadow: 0 5px 0 #0e7490, 0 0 16px rgba(6, 182, 212, 0.45);
+
+  --slot-border: #06b6d4;
+  --slot-reveal-border: #4ade80;
+  --slot-reveal-text: #4ade80;
+
+  --header-bg: #0f172a;
+  --header-border: #38bdf8;
+  --header-title: #38bdf8;
+  --header-sub: #94a3b8;
+  --header-shadow: 0 6px 0 #0284c7, 0 0 18px rgba(56, 189, 248, 0.4);
+
+  --motto-bg: linear-gradient(180deg, #581c87 0%, #3b0764 100%);
+  --motto-border: #c084fc;
+  --motto-text: #f0abfc;
+  --motto-text-shadow: 0 0 10px rgba(192, 132, 252, 0.8);
+  --motto-shadow: 0 0 20px rgba(192, 132, 252, 0.5);
+
+  --panel-bg: rgba(15, 23, 42, 0.93);
+  --panel-border: #06b6d4;
+  --panel-radius: 14px;
+  --panel-shadow: 0 0 18px rgba(6, 182, 212, 0.35);
+  --panel-title: #38bdf8;
+  --panel-text: #cbd5e1;
+  --panel-points: #f43f5e;
+
+  --fast-bg: rgba(15, 23, 42, 0.96);
+  --fast-border: #38bdf8;
+  --fast-header-bg: #0284c7;
+  --fast-header-text: #f0f9ff;
+  --fast-zebra: rgba(30, 41, 59, 0.7);
+  --fast-text: #e2e8f0;
+  --fast-subtext: #94a3b8;
+  --fast-points: #f43f5e;
+
+  --tag-bg: rgba(15, 23, 42, 0.94);
+  --tag-border: 1px solid #38bdf8;
+  --tag-text: #f1f5f9;
+  --tag-rank-bg: #06b6d4;
+  --tag-shadow: 0 0 8px rgba(6, 182, 212, 0.4);
+}
+
+/* ==========================================================================
+   THEME 3: NOTEBOOK (Vở ô ly caro học sinh, mực tím Cửu Long & mực đỏ)
+   ========================================================================== */
+[data-theme="notebook"] {
+  --board-bg: #fcfbf7;
+  --board-border: #94a3b8;
+  --board-border-width: 6px;
+  --board-radius: 8px;
+  --board-shadow: 0 10px 25px rgba(0, 0, 0, 0.15), inset 0 0 0 1px #e2e8f0;
+  --board-text: #1e1b4b;
+  /* Kẻ lưới ô ly caro học trò */
+  --board-pattern:
+    linear-gradient(rgba(147, 197, 253, 0.4) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(147, 197, 253, 0.4) 1px, transparent 1px);
+  --chalk-font: 'Patrick Hand', 'Dancing Script', 'Be Vietnam Pro', cursive;
+  --chalk-shadow: 0 0 1px rgba(30, 27, 75, 0.2);
+
+  --text-gold: #b91c1c;
+  --text-correct: #15803d;
+  --text-urgent: #dc2626;
+
+  --timer-border: #2563eb;
+  --timer-text: #1d4ed8;
+  --timer-urgent-border: #dc2626;
+  --timer-urgent-bg: rgba(220, 38, 38, 0.15);
+  --timer-urgent-text: #dc2626;
+
+  --tile-bg: linear-gradient(180deg, #fef08a 0%, #fde047 100%);
+  --tile-text: #1e1b4b;
+  --tile-radius: 8px;
+  --tile-border: 2px dashed #ca8a04;
+  --tile-shadow: 0 4px 0 #a16207, 0 6px 8px rgba(0, 0, 0, 0.15);
+
+  --slot-border: #2563eb;
+  --slot-reveal-border: #dc2626;
+  --slot-reveal-text: #dc2626;
+
+  --header-bg: #ffffff;
+  --header-border: #3b82f6;
+  --header-title: #1e3a8a;
+  --header-sub: #475569;
+  --header-shadow: 0 6px 0 #1d4ed8;
+
+  --motto-bg: linear-gradient(180deg, #dc2626 0%, #b91c1c 100%);
+  --motto-border: #fcd34d;
+  --motto-text: #fef08a;
+  --motto-text-shadow: 0 2px 0 #7f1d1d;
+  --motto-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
+
+  --panel-bg: rgba(255, 253, 240, 0.98);
+  --panel-border: #94a3b8;
+  --panel-radius: 8px;
+  --panel-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  --panel-title: #1d4ed8;
+  --panel-text: #1e293b;
+  --panel-points: #dc2626;
+
+  --fast-bg: rgba(255, 255, 255, 0.98);
+  --fast-border: #3b82f6;
+  --fast-header-bg: #1d4ed8;
+  --fast-header-text: #ffffff;
+  --fast-zebra: rgba(239, 246, 255, 0.8);
+  --fast-text: #1e293b;
+  --fast-subtext: #475569;
+  --fast-points: #dc2626;
+
+  --tag-bg: rgba(255, 255, 255, 0.98);
+  --tag-border: 1px solid #93c5fd;
+  --tag-text: #1e293b;
+  --tag-rank-bg: #2563eb;
+  --tag-shadow: 0 2px 4px rgba(37, 99, 235, 0.18);
+}
+
+/* ==========================================================================
+   CÁC LỚP TIỆN ÍCH DÙNG TOKEN
+   ========================================================================== */
+
+/* Chữ viết trên bảng */
+.chalk {
+  font-family: var(--chalk-font);
+  text-shadow: var(--chalk-shadow);
+  color: var(--board-text);
+}
+
+/* Miếng chữ gỗ / tem chữ xáo trộn */
 .tile {
   font-family: 'Be Vietnam Pro', sans-serif;
-  color: #5b3512;
-  background: linear-gradient(180deg, #fbe7b9 0%, #efc77a 100%);
-  border-radius: 12px;
-  box-shadow: 0 5px 0 #a8742f, 0 8px 10px rgba(0, 0, 0, 0.35);
+  color: var(--tile-text);
+  background: var(--tile-bg);
+  border-radius: var(--tile-radius);
+  border: var(--tile-border);
+  box-shadow: var(--tile-shadow);
 }
 
 /* Bảng tên trên đầu học sinh */
@@ -24,11 +326,12 @@
   max-width: 170px;
   padding: 1px 9px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.95);
-  color: #3b2410;
+  background: var(--tag-bg);
+  border: var(--tag-border);
+  color: var(--tag-text);
   font-weight: 700;
   white-space: nowrap;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--tag-shadow);
 }
 .nametag .rank {
   flex: none;
@@ -36,7 +339,7 @@
   width: 1.3em;
   height: 1.3em;
   border-radius: 50%;
-  background: #f59e0b;
+  background: var(--tag-rank-bg);
   color: #fff;
   font-size: 0.85em;
   display: flex;
@@ -73,20 +376,20 @@
   }
 }
 
-/* Bảng khẩu hiệu nền đỏ chữ vàng */
+/* Bảng khẩu hiệu */
 .motto {
-  color: #ffd84a;
-  background: linear-gradient(180deg, #c81e1e 0%, #a51515 100%);
-  border: 4px solid #f2c14e;
+  color: var(--motto-text);
+  background: var(--motto-bg);
+  border: 4px solid var(--motto-border);
   border-radius: 6px;
-  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.3);
-  text-shadow: 0 2px 0 #7a0e0e;
+  box-shadow: var(--motto-shadow);
+  text-shadow: var(--motto-text-shadow);
   z-index: 2;
 }
 
 /* Câu hỏi vàng: viền vàng quanh vùng chữ trên bảng */
 .golden-board {
-  outline: 6px solid #ffd84a;
+  outline: 6px solid var(--text-gold);
   outline-offset: 6px;
   border-radius: 10px;
   animation: golden-pulse 1s ease-in-out infinite alternate;
@@ -94,13 +397,71 @@
 @keyframes golden-pulse {
   from {
     outline-color: rgba(255, 216, 74, 0.5);
+    box-shadow: 0 0 15px rgba(255, 216, 74, 0.3);
   }
   to {
     outline-color: rgba(255, 216, 74, 1);
+    box-shadow: 0 0 30px rgba(255, 216, 74, 0.7);
   }
+}
+
+/* Confetti hạt vàng rơi nhẹ cho câu hỏi vàng */
+@keyframes golden-fall {
+  0% {
+    transform: translateY(-40px) rotate(0deg) scale(0.6);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(1940px) rotate(720deg) scale(1.1);
+    opacity: 0;
+  }
+}
+
+@keyframes golden-shimmer {
+  0%, 100% {
+    filter: drop-shadow(0 0 4px #ffd700);
+  }
+  50% {
+    filter: drop-shadow(0 0 12px #fffbeb) brightness(1.2);
+  }
+}
+
+.golden-confetti-particle {
+  position: absolute;
+  top: 0;
+  pointer-events: none;
+  animation-name: golden-fall;
+  animation-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  animation-iteration-count: infinite;
 }
 
 /* Bạn bị gọi lên bảng kiểm tra miệng */
 .called-up {
-  filter: drop-shadow(0 0 10px #ffd84a) drop-shadow(0 0 4px #ffd84a);
+  filter: drop-shadow(0 0 10px var(--text-gold)) drop-shadow(0 0 4px var(--text-gold));
+}
+
+/* Class bảng đen tùy biến */
+.board-screen {
+  background-color: var(--board-bg);
+  background-image: var(--board-pattern);
+  background-size: 24px 24px;
+  border: var(--board-border-width) solid var(--board-border);
+  border-radius: var(--board-radius);
+  box-shadow: var(--board-shadow);
+  color: var(--board-text);
+}
+
+/* Class panel thông tin */
+.hud-panel {
+  background: var(--panel-bg);
+  border: 3px solid var(--panel-border);
+  border-radius: var(--panel-radius);
+  box-shadow: var(--panel-shadow);
+  color: var(--panel-text);
 }
