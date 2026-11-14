@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import type { GameState, StageView } from '../../game/useGame';
 import { shownTeacherName } from '../../game/config';
-import { giftOf, tierOf } from '../../game/quiz';
+import { giftOf, tierOf, type RecessGame } from '../../game/quiz';
 import { getGonTheme, applyGonTheme, GON_THEME_VARS, type GonThemeName } from './theme';
 import { GonTeacher } from './GonTeacher';
 import './gon.css';
@@ -34,6 +34,98 @@ function getColorForName(name: string): string {
   return CIRCLE_COLORS[h % CIRCLE_COLORS.length];
 }
 
+function GonClassCard({
+  v,
+  teacherName,
+  giftInfo,
+  hint,
+  fallbackSeats,
+}: {
+  v: StageView;
+  teacherName: string;
+  giftInfo?: { nickname: string; giftName: string; icon: string; isBig: boolean } | null;
+  hint?: string;
+  fallbackSeats?: { nickname: string; score?: number; showIcons?: string }[];
+}) {
+  const seatsList = v.seats.length > 0 ? v.seats : (fallbackSeats || []);
+  const seatedCount = v.seats.length > 0 ? v.seats.length : (fallbackSeats?.length || 0);
+
+  return (
+    <div className="gon-class-card">
+      <div className="gon-class-card-top">
+        <span className="gon-class-card-title">
+          LỚP HỌC · {Math.min(24, seatedCount)}/24
+        </span>
+        <span className="gon-class-card-hint">
+          {hint || `Gửi tặng ${teacherName.toLowerCase()}: hoa · tim · bánh`}
+        </span>
+      </div>
+      <div className="gon-desks-grid">
+        {Array.from({ length: 24 }, (_, i) => {
+          const s = seatsList[i];
+          const isGifter = Boolean(s && giftInfo && s.nickname === giftInfo.nickname);
+          return (
+            <div
+              key={i}
+              className="gon-desk-cell relative"
+              style={
+                isGifter
+                  ? {
+                    borderColor: 'var(--g-gold)',
+                    boxShadow: '0 0 20px rgba(245, 158, 11, 0.95)',
+                    background: 'rgba(245, 158, 11, 0.2)',
+                    transform: 'scale(1.06)',
+                    transition: 'all 0.3s ease',
+                  }
+                  : s
+                    ? { borderStyle: 'solid', borderColor: getColorForName(s.nickname) }
+                    : undefined
+              }
+            >
+              {s && (
+                <>
+                  <div
+                    className="gon-seat-avatar relative"
+                    style={{ background: getColorForName(s.nickname) }}
+                  >
+                    {getInitialLetter(s.nickname)}
+                    {'title' in s && s.title === 'lop-truong' ? (
+                      <span className="absolute -top-2 -right-1 text-[16px] leading-none">👑</span>
+                    ) : null}
+                    {'sleeping' in s && Boolean(s.sleeping) ? (
+                      <span className="absolute -top-2 -left-1 text-[16px] leading-none">💤</span>
+                    ) : null}
+                  </div>
+                  <span className="gon-seat-name" style={{ color: 'var(--g-text-main)' }}>
+                    {'team' in s && typeof s.team === 'number' && s.team > 0 ? (
+                      <span
+                        className="mr-1 inline-block rounded-full px-1.5 py-0.2 text-[12px] font-black text-white"
+                        style={{
+                          background:
+                            s.team === 1 ? '#f43f5e' : s.team === 2 ? '#06b6d4' : s.team === 3 ? '#4ade80' : '#facc15',
+                        }}
+                      >
+                        {s.team}
+                      </span>
+                    ) : null}
+                    {'showIcons' in s && s.showIcons ? <span className="mr-0.5">{String(s.showIcons)}</span> : null}
+                    {s.nickname}
+                  </span>
+                  {isGifter && (
+                    <span className="absolute -top-3 -right-3 text-[22px] animate-bounce">
+                      {giftInfo?.icon ?? '🌹'}
+                    </span>
+                  )}
+                </>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function GonStage({ game }: { game: GameState }) {
   const now = useNow();
   const v = game.view;
@@ -54,7 +146,7 @@ export function GonStage({ game }: { game: GameState }) {
     );
   }
 
-  // Ép trạng thái xem thử qua ?state=reveal|recess|monitor|full|everest|chuong|flower|gift (nếu có trên URL)
+  // Ép trạng thái xem thử qua ?state=reveal|recess|monitor|full|everest|chuong|flower|gift|intro (nếu có trên URL)
   const urlState = typeof window !== 'undefined'
     ? new URLSearchParams(window.location.search).get('state')
     : null;
@@ -64,14 +156,64 @@ export function GonStage({ game }: { game: GameState }) {
   const isPreviewChuong = urlState === 'chuong';
   const isPreviewFlower = urlState === 'flower';
   const isPreviewGift = urlState === 'gift';
+  const isPreviewRps = urlState === 'rps' || urlState === 'oan-tu-ti';
+  const isPreviewCallup = urlState === 'callup' || urlState === 'kiem-tra-mieng';
+  const isPreviewPick = urlState === 'pick' || urlState === 'chon-phe';
+  const isPreviewRoll = urlState === 'roll' || urlState === 'diem-danh';
+  const isPreviewHeart = urlState === 'heart' || urlState === 'tha-tim';
+  const isPreviewDance = urlState === 'dance' || urlState === 'nhay-mua';
+  const isPreviewRecessAny = urlState === 'recess' || isPreviewRps || isPreviewCallup || isPreviewPick || isPreviewRoll || isPreviewHeart || isPreviewDance;
 
   const isShow = isPreviewEverest || isPreviewChuong || (v.phase === 'show' && Boolean(v.show));
   const isTeam = !isShow && v.phase === 'team';
   const isVote = !isShow && v.phase === 'vote' && Boolean(v.vote);
-  const isReveal = urlState === 'reveal' || (!isShow && v.phase === 'reveal');
-  const isRecess = urlState === 'recess' || (!isShow && v.phase === 'recess');
-  const isMonitor = urlState === 'monitor' || (!isShow && (v.phase === 'results' || v.phase === 'praise'));
-  const isFullClass = urlState === 'full' || (!isShow && !isTeam && !isVote && !isReveal && !isRecess && !isMonitor && v.phase === 'question' && (v.seats.length >= 20 || v.roster.seated >= 20));
+  const isIntro = urlState === 'intro' || (!isShow && !isTeam && !isVote && v.phase === 'intro');
+  const isReveal = urlState === 'reveal' || (!isShow && !isTeam && !isVote && !isIntro && v.phase === 'reveal');
+  const isRecess = isPreviewRecessAny || (!isShow && !isTeam && !isVote && !isIntro && !isReveal && v.phase === 'recess');
+  const isMonitor = urlState === 'monitor' || (!isShow && !isTeam && !isVote && !isIntro && (v.phase === 'results' || v.phase === 'praise'));
+  const isFullClass = urlState === 'full' || (!isShow && !isTeam && !isVote && !isIntro && !isReveal && !isRecess && !isMonitor && v.phase === 'question' && (v.seats.length >= 24 || v.roster.seated >= 24));
+  const isQuestion = !isShow && !isTeam && !isVote && !isIntro && !isReveal && !isRecess && !isMonitor && !isFullClass;
+
+  const activeRecess = v.recess || (isPreviewRecessAny ? {
+    game: (
+      isPreviewRps ? 'rps' :
+        isPreviewCallup ? 'callup' :
+          isPreviewPick ? 'pick' :
+            isPreviewRoll ? 'roll' :
+              isPreviewHeart ? 'heart' :
+                isPreviewDance ? 'dance' :
+                  'roll'
+    ) as RecessGame,
+    stage: 'play' as const,
+    rpsCounts: [12, 8, 15],
+    teacher: 'búa' as const,
+    callName: 'Bé Na',
+    callClue: 'Ngày đầu tuần ai cũng muốn xoá khỏi lịch, cô Ngân sợ nhất',
+    callTiles: ['T', 'H', 'Ứ', 'H', 'A', 'I'],
+    callSlots: ['T', '', '', ' ', '', ''],
+    callResult: 'right' as const,
+    pick: ['Đi ăn kem 🍦', 'Đi trà sữa 🧋'],
+    votes: [18, 14],
+    roll: ['Bé Na', 'Lan Anh', 'Khoa', 'Thu Hà', 'Minh Tuấn'],
+    hearts: 1250,
+    heartTarget: 2000,
+    topLiker: { nickname: 'Bé Na', n: 320 },
+  } : null);
+
+  const headerSub =
+    isShow
+      ? (v.show?.kind === 'everest' ? '🏔️ Everest' : '🔔 Chuông Đồng')
+      : isTeam
+        ? 'Chọn tổ'
+        : isVote
+          ? 'Chọn chủ đề'
+          : isRecess
+            ? 'Ra chơi'
+            : isMonitor
+              ? (v.phase === 'praise' ? 'Khen thưởng' : 'Xong tiết')
+              : isIntro
+                ? (v.review ? 'Ôn bài' : 'Sắp vào học')
+                : (v.phase === 'bonus' ? 'Thưởng +10s' : `${v.review ? 'Ôn bài' : 'Câu'} ${v.qNo || 1}/${v.total || 20}`);
 
   // Nhận biết sự kiện tặng hoa / quà
   const giftCoins = game.lastGift ? (game.lastGift.diamondCount || 1) * (game.lastGift.repeatCount || 1) : 0;
@@ -86,36 +228,36 @@ export function GonStage({ game }: { game: GameState }) {
   const giftInfo = isPreviewGift
     ? { nickname: 'Gia Huy', giftName: 'Món quà to (Mũ)', icon: '🎁', isBig: true }
     : isPreviewFlower
-    ? { nickname: 'Bé Na', giftName: 'Hoa hồng', icon: '🌹', isBig: false }
-    : isLastGiftRecent && game.lastGift
-    ? {
-        nickname: game.lastGift.nickname,
-        giftName: isLastGiftBig ? (game.lastGift.giftName || 'Món quà to') : (giftOf(game.lastGift.giftName)?.say ?? game.lastGift.giftName ?? 'Hoa hồng'),
-        icon: isLastGiftBig ? '🎁' : (giftOf(game.lastGift.giftName)?.icon ?? '🌹'),
-        isBig: isLastGiftBig,
-      }
-    : isWalkRecent && v.walk
-    ? {
-        nickname: v.walk.nickname,
-        giftName: v.walk.tier >= 2 ? 'Món quà to' : 'Bó hoa tươi',
-        icon: v.walk.tier >= 2 ? '🎁' : (v.walk.icon || '🌹'),
-        isBig: v.walk.tier >= 2,
-      }
-    : isFundPartyRecent && v.fund?.party
-    ? {
-        nickname: 'Cả lớp',
-        giftName: `Đạt mốc ${v.fund.party} hoa!`,
-        icon: '🎉',
-        isBig: true,
-      }
-    : isFlowerRecent
-    ? {
-        nickname: 'Bé Na',
-        giftName: 'Hoa hồng',
-        icon: '🌹',
-        isBig: false,
-      }
-    : null;
+      ? { nickname: 'Bé Na', giftName: 'Hoa hồng', icon: '🌹', isBig: false }
+      : isLastGiftRecent && game.lastGift
+        ? {
+          nickname: game.lastGift.nickname,
+          giftName: isLastGiftBig ? (game.lastGift.giftName || 'Món quà to') : (giftOf(game.lastGift.giftName)?.say ?? game.lastGift.giftName ?? 'Hoa hồng'),
+          icon: isLastGiftBig ? '🎁' : (giftOf(game.lastGift.giftName)?.icon ?? '🌹'),
+          isBig: isLastGiftBig,
+        }
+        : isWalkRecent && v.walk
+          ? {
+            nickname: v.walk.nickname,
+            giftName: v.walk.tier >= 2 ? 'Món quà to' : 'Bó hoa tươi',
+            icon: v.walk.tier >= 2 ? '🎁' : (v.walk.icon || '🌹'),
+            isBig: v.walk.tier >= 2,
+          }
+          : isFundPartyRecent && v.fund?.party
+            ? {
+              nickname: 'Cả lớp',
+              giftName: `Đạt mốc ${v.fund.party} hoa!`,
+              icon: '🎉',
+              isBig: true,
+            }
+            : isFlowerRecent
+              ? {
+                nickname: 'Bé Na',
+                giftName: 'Hoa hồng',
+                icon: '🌹',
+                isBig: false,
+              }
+              : null;
 
   const left = Math.max(0, Math.ceil((v.endsAt - now) / 1000));
   const teacherName = shownTeacherName(v.cfg);
@@ -123,8 +265,8 @@ export function GonStage({ game }: { game: GameState }) {
     v.nextShow?.kind === 'chuong'
       ? 'Rung chuông đồng'
       : v.nextShow?.kind === 'everest'
-      ? 'Đường lên đỉnh Everest'
-      : 'Rung chuông đồng';
+        ? 'Đường lên đỉnh Everest'
+        : 'Rung chuông đồng';
   const nextShowRound = v.nextShow?.afterRound ?? 4;
 
   const sampleCorrect = [
@@ -138,9 +280,28 @@ export function GonStage({ game }: { game: GameState }) {
   const top1 = v.seats.slice().sort((a, b) => (b.score || 0) - (a.score || 0))[0];
   const top1Student = top1 ? { nickname: top1.nickname, score: top1.score } : { nickname: 'Bé Na', score: 30 };
 
-  const fastestList = v.correctTop.length > 0
-    ? v.correctTop.slice(0, 5).map((c, i) => ({ nickname: c.nickname, pts: [10, 7, 5, 3, 1][i] || 1 }))
-    : sampleCorrect;
+  const displayedSeats = v.seats.length > 0
+    ? v.seats
+    : (isPreviewEverest || isPreviewChuong)
+      ? [
+        { nickname: 'Bé Na', score: 40, showIcons: isPreviewChuong ? '🔔' : '🏔️' },
+        { nickname: 'Minh Tuấn', score: 30, showIcons: isPreviewChuong ? '🔔' : '🏔️' },
+        { nickname: 'Lan Anh', score: 20, showIcons: isPreviewChuong ? '🔔' : '🏔️' },
+        { nickname: 'Khoa', score: 15, showIcons: isPreviewChuong ? '🔔' : '🏔️' },
+        { nickname: 'Thu Hà', score: 10 },
+        { nickname: 'Đức', score: 5 },
+        { nickname: 'Bảo Anh', score: 3 },
+        { nickname: 'Gia Huy', score: 1 },
+      ]
+      : [];
+
+  const fastestList = v.fastest && v.fastest.length > 0
+    ? v.fastest
+    : v.correctTop.length > 0
+      ? v.correctTop.slice(0, 5).map((c, i) => ({ nickname: c.nickname, points: c.points || [10, 7, 5, 3, 1][i] || 1, ms: 1200 + i * 350 }))
+      : urlState === 'reveal'
+        ? sampleCorrect.map((s, i) => ({ nickname: s.nickname, points: s.pts, ms: 1200 + i * 400 }))
+        : [];
 
   const activeShow = v.show || (isShow ? {
     kind: isPreviewChuong ? ('chuong' as const) : ('everest' as const),
@@ -315,11 +476,10 @@ export function GonStage({ game }: { game: GameState }) {
             exit={{ opacity: 0, scale: 0.8, y: -20 }}
             transition={{ type: 'spring', damping: 20, stiffness: 300 }}
             style={{ position: 'absolute', left: 60, top: 400, width: 960, zIndex: 100 }}
-            className={`rounded-[32px] border-4 border-white p-7 text-center text-white shadow-2xl ${
-              giftInfo.isBig
-                ? 'bg-gradient-to-r from-amber-500 via-rose-500 to-purple-600 shadow-[0_0_50px_rgba(245,158,11,0.7)]'
-                : 'bg-gradient-to-r from-rose-500 via-pink-500 to-amber-400 shadow-[0_0_40px_rgba(244,63,94,0.6)]'
-            }`}
+            className={`rounded-[32px] border-4 border-white p-7 text-center text-white shadow-2xl ${giftInfo.isBig
+              ? 'bg-gradient-to-r from-amber-500 via-rose-500 to-purple-600 shadow-[0_0_50px_rgba(245,158,11,0.7)]'
+              : 'bg-gradient-to-r from-rose-500 via-pink-500 to-amber-400 shadow-[0_0_40px_rgba(244,63,94,0.6)]'
+              }`}
           >
             <div className="flex items-center justify-center gap-3">
               <span className="text-[44px] animate-bounce">✨</span>
@@ -369,16 +529,9 @@ export function GonStage({ game }: { game: GameState }) {
         )}
       </AnimatePresence>
 
-      {/* ─── VÙNG AN TOÀN TIKTOK ───────────────────────────────────── */}
+      {/* ─── KHUNG NỘI DUNG CHÍNH ───────────────────────────────────── */}
       <div className="gon-safe-area">
-        {/* Vùng TikTok trên (chừa 224px) */}
-        <div className="gon-top-space">
-          <div className="gon-guide-bar">
-            Vùng TikTok: tên kênh, Follow, banner (không đặt nội dung)
-          </div>
-        </div>
-
-        {/* ─── VÙNG NỘI DUNG CHÍNH (1440px) ────────────────────────── */}
+        {/* ─── VÙNG NỘI DUNG CHÍNH ─────────────────────────────────── */}
         <div className="gon-content">
           {/* 1. HÀNG ĐẦU: Tên game & 3 chip */}
           <div className="gon-header-row">
@@ -389,16 +542,10 @@ export function GonStage({ game }: { game: GameState }) {
             <div className="gon-header-chips">
               <span className="gon-pill">Tiết {v.round || 1}</span>
               <span className="gon-pill active">
-                {isShow
-                  ? (v.show?.kind === 'everest' ? '🏔️ Everest' : '🔔 Chuông Đồng')
-                  : isRecess
-                  ? 'Ra chơi'
-                  : isMonitor
-                  ? 'Xong tiết'
-                  : `Câu ${v.qNo || 1}/${v.total || 20}`}
+                {headerSub}
               </span>
               <span className="gon-pill">
-                {isFullClass ? '20/20' : `${Math.min(20, v.seats.length || v.roster.seated || 0)}/20`}
+                {isFullClass ? '24/24' : `${Math.min(24, v.seats.length || v.roster.seated || 0)}/24`}
               </span>
             </div>
           </div>
@@ -428,14 +575,14 @@ export function GonStage({ game }: { game: GameState }) {
                     {activeShow.step === 'gather'
                       ? activeShow.name
                       : activeShow.step === 'section'
-                      ? activeShow.section || activeShow.name
-                      : activeShow.step === 'stake'
-                      ? '🏔️ Chọn mức điểm'
-                      : activeShow.step === 'code'
-                      ? '🔐 Mật mã trạm'
-                      : activeShow.tag === 'bell'
-                      ? '🔔 Câu Chuông Đồng'
-                      : `Câu ${activeShow.qNo}`}
+                        ? activeShow.section || activeShow.name
+                        : activeShow.step === 'stake'
+                          ? '🏔️ Chọn mức điểm'
+                          : activeShow.step === 'code'
+                            ? '🔐 Mật mã trạm'
+                            : activeShow.tag === 'bell'
+                              ? '🔔 Câu Chuông Đồng'
+                              : `Câu ${activeShow.qNo}`}
                   </span>
                   {activeShow.stage === 'ask' && (v.boardShown || isPreviewEverest || isPreviewChuong) ? (
                     <div className="gon-timer-circle">{left || 15}</div>
@@ -596,7 +743,7 @@ export function GonStage({ game }: { game: GameState }) {
               {/* Thanh giáo viên */}
               <div className="gon-teacher-card">
                 <div className="gon-teacher-avatar-wrap">
-                  <GonTeacher size={76} hasFlower={hasFlower} />
+                  <GonTeacher size={82} hasFlower={hasFlower} />
                 </div>
                 <div className="gon-teacher-info">
                   <div className="gon-teacher-line1">
@@ -609,6 +756,15 @@ export function GonStage({ game }: { game: GameState }) {
                 </div>
                 <span className="gon-teacher-badge">{activeShow.players || v.roster.seated} bạn chơi</span>
               </div>
+
+              {/* THẺ LỚP HỌC (24 BÀN) */}
+              <GonClassCard
+                v={v}
+                teacherName={teacherName}
+                giftInfo={giftInfo}
+                hint={`${activeShow.name} · ${activeShow.players || v.roster.seated} bạn tham gia`}
+                fallbackSeats={displayedSeats}
+              />
             </>
           )}
 
@@ -657,7 +813,7 @@ export function GonStage({ game }: { game: GameState }) {
 
               <div className="gon-teacher-card">
                 <div className="gon-teacher-avatar-wrap">
-                  <GonTeacher size={76} hasFlower={hasFlower} />
+                  <GonTeacher size={82} hasFlower={hasFlower} />
                 </div>
                 <div className="gon-teacher-info">
                   <div className="gon-teacher-line1">
@@ -670,6 +826,14 @@ export function GonStage({ game }: { game: GameState }) {
                 </div>
                 <span className="gon-teacher-badge">{v.roster.seated} bạn</span>
               </div>
+
+              {/* THẺ LỚP HỌC (24 BÀN) */}
+              <GonClassCard
+                v={v}
+                teacherName={teacherName}
+                giftInfo={giftInfo}
+                hint={`Chọn tổ thi đua · ${v.roster.seated} bạn trong lớp`}
+              />
             </>
           )}
 
@@ -703,7 +867,7 @@ export function GonStage({ game }: { game: GameState }) {
 
               <div className="gon-teacher-card">
                 <div className="gon-teacher-avatar-wrap">
-                  <GonTeacher size={76} hasFlower={hasFlower} />
+                  <GonTeacher size={82} hasFlower={hasFlower} />
                 </div>
                 <div className="gon-teacher-info">
                   <div className="gon-teacher-line1">
@@ -716,180 +880,504 @@ export function GonStage({ game }: { game: GameState }) {
                 </div>
                 <span className="gon-teacher-badge">{v.roster.seated} bạn</span>
               </div>
+
+              {/* THẺ LỚP HỌC (24 BÀN) */}
+              <GonClassCard
+                v={v}
+                teacherName={teacherName}
+                giftInfo={giftInfo}
+                hint={`Bầu chọn chủ đề · ${v.roster.seated} bạn trong lớp`}
+              />
+            </>
+          )}
+
+          {/* ========================================================
+              UI INTRO: SẮP VÀO HỌC / BẢNG VÀNG TUẦN (phase === 'intro')
+             ======================================================== */}
+          {isIntro && !isShow && !isTeam && !isVote && (
+            <>
+              {/* BẢNG ĐEN: Sắp vào học / Bảng vàng tuần */}
+              <div className="gon-blackboard" style={{ padding: '28px 32px' }}>
+                <div className="gon-blackboard-top">
+                  <span className="gon-topic-tag">
+                    {v.round % 2 === 0 && v.weekTop.length > 0
+                      ? '🏆 BẢNG VÀNG TUẦN'
+                      : v.topic
+                        ? `🗳️ ${v.topic}`
+                        : '🔔 CHUẨN BỊ VÀO TIẾT'}
+                  </span>
+                  <div className="gon-timer-circle">{left || 5}s</div>
+                </div>
+
+                {v.round % 2 === 0 && v.weekTop.length > 0 ? (
+                  <div className="flex flex-col items-center my-auto py-2">
+                    <div className="text-[44px] font-extrabold text-[#facc15]">Bảng vàng tuần này</div>
+                    <div className="mt-3 w-full space-y-2">
+                      {v.weekTop.slice(0, 5).map((s, i) => (
+                        <div key={s.username} className="flex items-center gap-3 px-4 text-[26px]">
+                          <span className="w-10 text-[28px] font-black text-[#facc15]">{['🥇', '🥈', '🥉', '4', '5'][i]}</span>
+                          <span className="flex-1 truncate font-bold text-white">{s.nickname}</span>
+                          <span className="font-extrabold text-[#38bdf8]">{s.points}đ</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-4 text-[24px] opacity-80">Vào tiết sau {left} giây</div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-center my-auto py-3">
+                    <div className="text-[52px] font-black leading-none text-[#fbbf24] tracking-wide">
+                      Sắp vào học!
+                    </div>
+                    <div className="mt-4 space-y-1 text-[28px] font-bold text-white/95 leading-snug">
+                      <div>Cô xáo chữ, cả lớp đoán từ.</div>
+                      <div>
+                        Gõ đáp án vào <b className="text-[#fbbf24]">bình luận</b>
+                      </div>
+                      <div>
+                        Nhanh nhất <b className="text-[#fbbf24]">+10 điểm</b>
+                      </div>
+                    </div>
+                    {v.topic && (
+                      <div className="mt-3 text-[26px] font-bold text-[#38bdf8]">
+                        🗳️ Cả lớp chọn: {v.topic}
+                      </div>
+                    )}
+                    {v.review && (
+                      <div className="mt-3 text-[26px] font-bold text-[#fbbf24]">
+                        📖 Giờ ôn bài · gõ "vào lớp" để học bài mới
+                      </div>
+                    )}
+                    <div className="mt-4 text-[26px] font-semibold text-white/80">
+                      Bắt đầu sau {left} giây
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* THẺ GIÁO VIÊN */}
+              <div className="gon-teacher-card">
+                <div className="gon-teacher-avatar-wrap">
+                  <GonTeacher size={82} hasFlower={hasFlower} />
+                </div>
+                <div className="gon-teacher-info">
+                  <div className="gon-teacher-line1">
+                    <span className="gon-teacher-name-bold">{teacherName}</span>
+                    {' · Chuẩn bị vào tiết mới nha cả lớp!'}
+                  </div>
+                  <div className="gon-teacher-line2">
+                    {v.review
+                      ? 'Gõ "vào lớp" để tham gia bài mới cùng cô nhé'
+                      : 'Các bạn nhanh chóng vào chỗ ngồi, nghe cô xáo chữ nha'}
+                  </div>
+                </div>
+                <span className="gon-teacher-badge">{v.roster.seated} bạn</span>
+              </div>
+
+              {/* HAI THẺ THI ĐUA TỔ & TOP TƯƠNG TÁC */}
+              <div className="gon-two-cards-row">
+                <div className="gon-info-card">
+                  <span className="gon-card-heading">THI ĐUA TỔ</span>
+                  <div className="flex flex-col gap-2">
+                    {[1, 2, 3, 4].map((tNo) => {
+                      const team = v.teams.find((t) => t.no === tNo);
+                      const score = team?.score ?? 0;
+                      const colors = ['var(--g-team1)', 'var(--g-team2)', 'var(--g-team3)', 'var(--g-team4)'];
+                      return (
+                        <div key={tNo} className="gon-team-item">
+                          <span className="gon-team-name">Tổ {tNo}</span>
+                          <div className="gon-team-track">
+                            <div
+                              className="gon-team-fill"
+                              style={{
+                                background: colors[tNo - 1],
+                                width: score > 0 ? `${Math.min(100, Math.max(12, score * 3))}%` : '16px',
+                              }}
+                            />
+                          </div>
+                          <span className="gon-team-pts">{score}đ</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="gon-info-card">
+                  <span className="gon-card-heading">TOP TƯƠNG TÁC</span>
+                  <div className="flex flex-col gap-1.5">
+                    {v.talkTop && v.talkTop.length > 0 ? (
+                      v.talkTop.slice(0, 2).map((item) => (
+                        <div key={item.username} className="gon-interact-item">
+                          <span>{item.nickname}</span>
+                          <span>{item.points}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="gon-interact-note">
+                        Bình luận nhiệt tình để lên bảng tương tác nha!
+                      </div>
+                    )}
+                  </div>
+                  <div className="gon-interact-note">
+                    Xuất sắc hôm nay: chưa có ai. Trả lời đúng là lên bảng!
+                  </div>
+                </div>
+              </div>
+
+              {/* THẺ LỚP HỌC (24 BÀN) */}
+              <GonClassCard v={v} teacherName={teacherName} giftInfo={giftInfo} />
             </>
           )}
 
           {/* ========================================================
               UI 1: HIỆN ĐÁP ÁN (Neon - Hiện đáp án)
              ======================================================== */}
-          {isReveal && !isShow && !isTeam && !isVote && (
+          {isReveal && !isShow && !isTeam && !isVote && !isIntro && (
             <>
               <div className="gon-blackboard">
                 <div className="gon-blackboard-top">
-                  <span className="gon-topic-tag">{v.category || 'Công sở: tiền bạc'}</span>
+                  <span className="gon-topic-tag">
+                    {v.golden ? '⭐ CÂU HỎI VÀNG' : v.category || 'ĐÁP ÁN'}
+                  </span>
                   <span className="gon-pill active" style={{ padding: '6px 20px', fontSize: 22 }}>
                     Hết giờ
                   </span>
                 </div>
                 <div className="gon-reveal-ans-tag">ĐÁP ÁN</div>
-                <div className="gon-tiles-row">
-                  {(v.answer ? v.answer.replace(/\s+/g, '').split('') : ['T', 'H', 'Ứ', 'H', 'A', 'I']).map((ch, i) => (
-                    <div
-                      key={`ans-${i}`}
-                      className="gon-tile-card"
-                      style={i === 3 ? { marginLeft: 24 } : undefined}
-                    >
-                      {ch}
+                <div className="flex flex-wrap items-center justify-center gap-4 my-2">
+                  {(v.answer || 'THỨ HAI').split(' ').map((word, wi) => (
+                    <div key={wi} className="flex gap-2">
+                      {word.split('').map((ch, ci) => (
+                        <div key={ci} className="gon-tile-card">
+                          {ch}
+                        </div>
+                      ))}
                     </div>
                   ))}
                 </div>
                 <div className="gon-reveal-count-pill">
-                  {v.correctCount || 3} người đoán đúng!
+                  {v.correctCount} người đoán đúng!
                 </div>
               </div>
 
               <div className="gon-info-card">
-                <span className="gon-card-heading">AI ĐOÁN ĐÚNG?</span>
-                <div className="gon-fastest-row">
-                  {fastestList.map((item, idx) => (
-                    <div key={idx} className="gon-fastest-col">
-                      <div className="gon-initial-circle" style={{ background: getColorForName(item.nickname) }}>
-                        {getInitialLetter(item.nickname)}
-                      </div>
-                      <span className="gon-fastest-name">{item.nickname}</span>
-                      <span className="gon-pts-pill">+{item.pts}</span>
-                    </div>
-                  ))}
+                <div className="flex items-center justify-between">
+                  <span className="gon-card-heading">⚡ TOP {fastestList.length > 0 ? fastestList.length : 5} NHANH NHẤT</span>
+                  <span className="text-[20px] font-bold text-white/80">{v.correctCount} bạn đúng</span>
                 </div>
+                {fastestList.length === 0 ? (
+                  <div className="py-4 text-center text-[24px] font-medium opacity-75">
+                    Chưa ai đúng câu này
+                  </div>
+                ) : (
+                  <div className="gon-fastest-row">
+                    {fastestList.map((item, idx) => (
+                      <div key={idx} className="gon-fastest-col">
+                        <div className="gon-initial-circle" style={{ background: getColorForName(item.nickname) }}>
+                          {getInitialLetter(item.nickname)}
+                        </div>
+                        <span className="gon-fastest-name">{item.nickname}</span>
+                        <span className="text-[17px] opacity-75">⏱ {((item.ms || 0) / 1000).toFixed(1)}s</span>
+                        <span className="gon-pts-pill">+{item.points ?? (item as any).pts ?? 10}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {v.laterCount > 0 && (
+                  <div className="mt-2 pt-2 border-t border-white/10 text-center text-[19px] font-bold text-white/70">
+                    +{v.laterCount} bạn khác đúng chậm hơn: mỗi bạn +{v.laterPoints}đ
+                  </div>
+                )}
               </div>
 
               <div className="gon-teacher-card">
                 <div className="gon-teacher-avatar-wrap">
-                  <GonTeacher size={76} hasFlower={hasFlower} />
+                  <GonTeacher size={82} hasFlower={hasFlower} />
                 </div>
                 <div className="gon-teacher-info">
                   <div className="gon-teacher-line1">
                     <span className="gon-teacher-name-bold">{teacherName}</span>
-                    {' · Đúng rồi cả lớp!'}
+                    {v.correctCount > 0 ? ' · Đúng rồi cả lớp!' : ' · Hết giờ rồi cả lớp ơi!'}
                   </div>
                   <div className="gon-teacher-line2">
-                    {v.answer || 'Thứ Hai'}, vỗ tay cho {fastestList[0]?.nickname || 'Bé Na'} nào
+                    {fastestList[0]
+                      ? `Đáp án: ${v.answer || 'Thứ Hai'}, vỗ tay cho ${fastestList[0].nickname} nào 👏`
+                      : `Đáp án là: "${v.answer || ''}", câu sau cố lên nhé!`}
                   </div>
                 </div>
-                <span className="gon-teacher-badge">{v.correctCount || 5} bạn đúng</span>
+                <span className="gon-teacher-badge">{v.correctCount} bạn đúng</span>
               </div>
 
-              <div className="gon-class-card">
-                <div className="gon-class-card-top">
-                  <span className="gon-class-card-title">LỚP HỌC · {Math.min(20, v.seats.length)}/20</span>
-                </div>
-                <div className="gon-desks-grid">
-                  {Array.from({ length: 20 }, (_, i) => {
-                    const s = v.seats[i];
-                    return (
-                      <div
-                        key={i}
-                        className="gon-desk-cell"
-                        style={s ? { borderStyle: 'solid', borderColor: getColorForName(s.nickname) } : undefined}
-                      >
-                        {s && (
-                          <>
-                            <div
-                              className="gon-seat-avatar"
-                              style={{ background: getColorForName(s.nickname) }}
-                            >
-                              {getInitialLetter(s.nickname)}
-                            </div>
-                            <span className="gon-seat-name" style={{ color: 'var(--g-text-main)' }}>
-                              {s.nickname}
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+              {/* THẺ LỚP HỌC (24 BÀN) */}
+              <GonClassCard v={v} teacherName={teacherName} giftInfo={giftInfo} />
             </>
           )}
 
           {/* ========================================================
               UI 2: RA CHƠI (Neon - Ra chơi & các trò chơi ra chơi)
              ======================================================== */}
-          {isRecess && !isShow && !isTeam && !isVote && !isReveal && (
+          {isRecess && !isShow && !isTeam && !isVote && !isIntro && !isReveal && (
             <>
-              {v.recess?.game === 'rps' ? (
+              {/* Overlay nhảy múa thả tim (dance) */}
+              {activeRecess?.game === 'dance' && activeRecess?.stage === 'play' && (
+                <div className="pointer-events-none absolute inset-0 z-40 overflow-hidden">
+                  <motion.div
+                    initial={{ y: -60 }}
+                    animate={{ y: 0, scale: [1, 1.04, 1] }}
+                    transition={{ scale: { duration: 0.9, repeat: Infinity } }}
+                    className="absolute left-[80px] top-[140px] w-[920px] rounded-[30px] border-4 border-white bg-gradient-to-r from-fuchsia-500 via-pink-500 to-amber-400 px-6 py-3 text-center font-extrabold text-white shadow-2xl"
+                  >
+                    <div className="text-[40px] leading-tight">💃 GIỜ RA CHƠI · CẢ LỚP LÊN NHẢY 🕺</div>
+                    <div className="line-clamp-2 text-[26px] leading-tight text-white/95">
+                      {v.cfg.danceText || 'Nhạc lên rồi quẩy thôi cả lớp ơi!'}
+                    </div>
+                  </motion.div>
+                  {Array.from({ length: 12 }, (_, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ y: 1500, opacity: 0 }}
+                      animate={{ y: 600, opacity: [0, 1, 0] }}
+                      transition={{ duration: 2.6, delay: (i % 6) * 0.35, repeat: Infinity }}
+                      className="absolute text-[60px]"
+                      style={{ left: 30 + i * 88 }}
+                    >
+                      {i % 3 === 0 ? '💖' : '❤️'}
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+
+              {/* 1. BẢNG VÀNG LỚP TRƯỞNG CÁC TIẾT */}
+              {activeRecess?.stage === 'board' ? (
                 <div className="gon-blackboard" style={{ padding: '24px 28px' }}>
                   <div className="gon-blackboard-top">
-                    <span className="gon-topic-tag">✊ Giờ ra chơi: Oẳn tù tì</span>
-                    <div className="gon-timer-circle" style={{ width: 72, height: 72, fontSize: 36, borderWidth: 5 }}>
-                      {left}
+                    <span className="gon-topic-tag">👑 LỚP TRƯỞNG CÁC TIẾT</span>
+                    <div className="gon-timer-circle">{left}</div>
+                  </div>
+                  {v.champions.length === 0 ? (
+                    <div className="my-auto text-center py-6">
+                      <div className="text-[48px]">🎖️</div>
+                      <div className="mt-2 text-[32px] font-bold text-white">Chưa có lớp trưởng</div>
+                      <div className="mt-1 text-[24px] opacity-80">Ai điểm cao nhất tiết sẽ lên bảng vinh danh!</div>
                     </div>
+                  ) : (
+                    <div className="my-auto space-y-2 py-2">
+                      {v.champions.map((c) => (
+                        <div key={c.round} className="flex items-center gap-3 rounded-xl border border-white/20 bg-white/10 px-4 py-2">
+                          <span className="rounded-full bg-amber-400/20 px-3 py-0.5 text-[22px] font-black text-[#fbbf24]">
+                            Tiết {c.round}
+                          </span>
+                          <span className="flex-1 truncate text-[30px] font-bold text-white">{c.nickname}</span>
+                          {c.times > 1 && (
+                            <span className="text-[20px] font-black text-[#fbbf24]">👑x{c.times}</span>
+                          )}
+                          <span className="text-[30px] font-black text-[#38bdf8]">{c.score}đ</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="mt-auto text-center text-[24px] font-medium opacity-85">
+                    Tiết mới điểm làm lại, ai cũng có thể làm lớp trưởng!
                   </div>
-                  <div className="mt-2 text-center text-[30px] font-bold text-white">
-                    Gõ: <b>búa</b>, <b>kéo</b> hoặc <b>bao</b>
+                </div>
+              ) : activeRecess?.game === 'callup' ? (
+                /* 2. 📢 KIỂM TRA MIỆNG */
+                <div className="gon-blackboard" style={{ padding: '24px 28px' }}>
+                  <div className="gon-blackboard-top">
+                    <span className="gon-topic-tag">📢 KIỂM TRA MIỆNG</span>
+                    <div className="gon-timer-circle">{left}</div>
                   </div>
-                  <div className="my-2 flex justify-center gap-6">
-                    {[
-                      { icon: '✊', word: 'búa', count: v.recess.rpsCounts[0] || 0 },
-                      { icon: '✌️', word: 'kéo', count: v.recess.rpsCounts[1] || 0 },
-                      { icon: '✋', word: 'bao', count: v.recess.rpsCounts[2] || 0 },
-                    ].map((item) => (
-                      <div
-                        key={item.word}
-                        className="flex w-[150px] flex-col items-center rounded-2xl border-2 border-white/30 bg-white/10 py-2"
-                      >
-                        <span className="text-[52px] leading-none">{item.icon}</span>
-                        <span className="text-[24px] font-bold">{item.word}</span>
-                        <span className="text-[28px] font-black text-[#4ade80]">{item.count}</span>
-                      </div>
-                    ))}
+                  <div className="mt-1 text-center text-[38px] font-black text-[#fbbf24]">
+                    📢 {activeRecess.callName || 'Học sinh'} lên bảng!
                   </div>
-                  {v.recess.teacher && (
-                    <div className="text-center text-[28px] font-bold text-[#fde047]">
-                      {teacherName} ra: <b>{v.recess.teacher}</b>!
+                  <div className="gon-clue-box">{activeRecess.callClue || 'Lắng nghe cô đọc gợi ý câu hỏi...'}</div>
+                  {activeRecess.callTiles && activeRecess.callTiles.length > 0 && (
+                    <div className="gon-tiles-row">
+                      {activeRecess.callTiles.map((ch, i) => (
+                        <div key={`ctile-${i}`} className="gon-tile-card">
+                          {ch}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {activeRecess.callSlots && activeRecess.callSlots.length > 0 && (
+                    <div className="gon-slots-row">
+                      {activeRecess.callSlots.map((slot, i) =>
+                        slot === ' ' ? (
+                          <div key={`cspace-${i}`} className="gon-slot-space" />
+                        ) : (
+                          <div key={`cslot-${i}`} className={`gon-slot-box ${slot ? 'has-char' : ''}`}>
+                            {slot || ''}
+                          </div>
+                        )
+                      )}
+                    </div>
+                  )}
+                  {activeRecess.stage !== 'play' && (
+                    <div className={`text-center text-[30px] font-bold mt-2 ${activeRecess.callResult === 'right' ? 'text-[#4ade80]' : 'text-[#f87171]'}`}>
+                      {activeRecess.callResult === 'right' ? '✅ Đúng! +5 điểm' : activeRecess.callResult === 'wrong' ? '❌ Sai mất rồi' : '💤 Không trả lời'}
                     </div>
                   )}
                 </div>
-              ) : v.recess?.game === 'pick' ? (
+              ) : activeRecess?.game === 'roll' ? (
+                /* 3. 🙋 ĐIỂM DANH SIÊU TỐC (10 Ô ĐẦY ĐỦ) */
                 <div className="gon-blackboard" style={{ padding: '24px 28px' }}>
                   <div className="gon-blackboard-top">
-                    <span className="gon-topic-tag">⚖️ Giờ ra chơi: Chọn phe</span>
-                    <div className="gon-timer-circle" style={{ width: 72, height: 72, fontSize: 36, borderWidth: 5 }}>
-                      {left}
-                    </div>
+                    <span className="gon-topic-tag">📋 ĐIỂM DANH SIÊU TỐC</span>
+                    <div className="gon-timer-circle">{left}</div>
                   </div>
-                  <div className="my-3 flex flex-col gap-3">
-                    {v.recess.pick.map((label, idx) => {
-                      const total = (v.recess?.votes[0] ?? 0) + (v.recess?.votes[1] ?? 0) || 1;
-                      const pct = Math.round(((v.recess?.votes[idx] ?? 0) / total) * 100);
+                  <div className="mt-1 text-center text-[38px] font-black text-[#fbbf24]">
+                    Điểm danh đầu tiết
+                  </div>
+                  <div className="my-1 text-center text-[26px] font-bold text-white">
+                    Gõ <b className="text-[#fbbf24]">CÓ MẶT</b> thật nhanh, 10 bạn đầu +3đ
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 my-2">
+                    {Array.from({ length: 10 }, (_, i) => {
+                      const name = activeRecess.roll[i];
                       return (
-                        <div key={label} className="gon-vote-bar">
-                          <div className="gon-vote-fill" style={{ width: `${pct}%` }} />
-                          <span className="relative z-10">
-                            Gõ <b>{idx + 1}</b>: {label}
+                        <div
+                          key={i}
+                          className={`flex items-center gap-3 rounded-xl px-4 py-2 border transition-all ${
+                            name
+                              ? 'border-[#4ade80]/60 bg-[#4ade80]/15 shadow-sm'
+                              : 'border-white/20 bg-white/5 border-dashed'
+                          }`}
+                        >
+                          <span className={`w-8 text-[24px] font-black ${name ? 'text-[#fbbf24]' : 'text-white/40'}`}>
+                            {i + 1}.
                           </span>
-                          <span className="relative z-10 font-black">{v.recess?.votes[idx] ?? 0}</span>
+                          {name ? (
+                            <>
+                              <div
+                                className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-white text-[16px] shrink-0"
+                                style={{ background: getColorForName(name) }}
+                              >
+                                {getInitialLetter(name)}
+                              </div>
+                              <span className="flex-1 truncate text-[24px] font-bold text-white">{name}</span>
+                              <span className="font-extrabold text-[22px] text-[#4ade80]">+3đ</span>
+                            </>
+                          ) : (
+                            <span className="text-[22px] font-semibold text-white/40 italic">Chờ có mặt...</span>
+                          )}
                         </div>
                       );
                     })}
                   </div>
                 </div>
-              ) : v.recess?.game === 'dance' || v.recess?.game === 'heart' ? (
+              ) : activeRecess?.game === 'rps' ? (
+                /* 4. ✊ OẲN TÙ TÌ VỚI CÔ */
+                <div className="gon-blackboard" style={{ padding: '24px 28px' }}>
+                  <div className="gon-blackboard-top">
+                    <span className="gon-topic-tag">✊ GIỜ RA CHƠI · OẲN TÙ TÌ</span>
+                    <div className="gon-timer-circle">{left}</div>
+                  </div>
+                  <div className="mt-1 text-center text-[40px] font-black text-[#fbbf24]">
+                    Oẳn tù tì với {teacherName.toLowerCase()}
+                  </div>
+                  <div className="mt-1 text-center text-[28px] font-bold text-white">
+                    {activeRecess.stage === 'play' ? (
+                      <>Gõ: <b className="text-[#fbbf24]">búa</b>, <b className="text-[#fbbf24]">kéo</b> hoặc <b className="text-[#fbbf24]">bao</b></>
+                    ) : activeRecess.teacher ? (
+                      <span className="text-[#fde047]">{teacherName} ra: <b className="text-[32px] text-white underline uppercase">{activeRecess.teacher}</b>!</span>
+                    ) : (
+                      'Không ai tham gia lượt này'
+                    )}
+                  </div>
+                  <div className="my-3 flex justify-center gap-6">
+                    {[
+                      { icon: '✊', word: 'búa', count: activeRecess.rpsCounts[0] || 0 },
+                      { icon: '✌️', word: 'kéo', count: activeRecess.rpsCounts[1] || 0 },
+                      { icon: '✋', word: 'bao', count: activeRecess.rpsCounts[2] || 0 },
+                    ].map((item) => {
+                      const isWinner = activeRecess.stage !== 'play' && activeRecess.teacher === item.word;
+                      return (
+                        <div
+                          key={item.word}
+                          className={`flex w-[160px] flex-col items-center rounded-2xl border-4 py-3 transition-all ${isWinner
+                              ? 'border-[#facc15] bg-[#facc15]/20 shadow-[0_0_24px_rgba(250,204,21,0.6)] scale-105'
+                              : 'border-white/30 bg-white/10'
+                            }`}
+                        >
+                          <span className="text-[64px] leading-none drop-shadow">{item.icon}</span>
+                          <span className="mt-1 text-[26px] font-bold text-white uppercase">{item.word}</span>
+                          <span className="text-[30px] font-black text-[#4ade80]">{item.count}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : activeRecess?.game === 'pick' ? (
+                /* 5. ⚖️ CHỌN PHE */
+                <div className="gon-blackboard" style={{ padding: '24px 28px' }}>
+                  <div className="gon-blackboard-top">
+                    <span className="gon-topic-tag">⚖️ GIỜ RA CHƠI · CHỌN PHE</span>
+                    <div className="gon-timer-circle">{left}</div>
+                  </div>
+                  <div className="mt-1 text-center text-[40px] font-black text-[#fbbf24]">
+                    Cả lớp cùng chọn phe!
+                  </div>
+                  <div className="my-1 text-center text-[26px] font-bold text-white/90">
+                    Gõ 1 hoặc 2 vào bình luận để bầu chọn
+                  </div>
+                  <div className="my-3 flex flex-col gap-4">
+                    {(activeRecess.pick || ['Phe A', 'Phe B']).map((label, idx) => {
+                      const total = (activeRecess.votes?.[0] ?? 0) + (activeRecess.votes?.[1] ?? 0) || 1;
+                      const count = activeRecess.votes?.[idx] ?? 0;
+                      const pct = Math.round((count / total) * 100);
+                      return (
+                        <div key={label} className="gon-vote-bar" style={{ height: 76 }}>
+                          <div className="gon-vote-fill" style={{ width: `${pct}%` }} />
+                          <span className="relative z-10 text-[30px]">
+                            Gõ <b>{idx + 1}</b>: {label}
+                          </span>
+                          <span className="relative z-10 text-[32px] font-black">{count}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : activeRecess?.game === 'dance' || activeRecess?.game === 'heart' ? (
+                /* 6. ❤️ THẢ TIM / 💃 NHẢY MÚA */
                 <div className="gon-blackboard gon-recess-board">
-                  <div className="gon-recess-title">
-                    {v.recess.game === 'dance' ? '💃 NHẢY MÚA THẢ TIM' : '❤️ THẢ TIM TIẾP SỨC'}
+                  <div className="gon-blackboard-top w-full">
+                    <span className="gon-topic-tag">
+                      {activeRecess.game === 'dance' ? '💃 NHẢY MÚA THẢ TIM' : '❤️ THẢ TIM CẢ LỚP'}
+                    </span>
+                    <div className="gon-timer-circle">{left}</div>
                   </div>
-                  <div className="text-[52px] font-black text-[#f43f5e] drop-shadow">
-                    ❤️ {v.recess.hearts || 300} tim!
+                  <div className="mt-2 text-center text-[44px] font-black text-[#f43f5e]">
+                    {activeRecess.game === 'dance' ? 'Cả lớp cùng lên nhảy! 🕺' : 'Chạm màn hình thả tim nào!'}
                   </div>
-                  {v.recess.topLiker && (
-                    <div className="text-[24px] font-bold text-[#fde047]">
-                      👑 Thả tim nhiều nhất: {v.recess.topLiker.nickname} ({v.recess.topLiker.n})
+                  <div className="my-1 text-center text-[26px] font-bold text-white/90">
+                    {activeRecess.game === 'dance'
+                      ? (v.cfg.danceText || 'Thả tim tiếp sức cho cả lớp nào!')
+                      : 'Mỗi lượt tim tiếp thêm động lực cho cô trò'}
+                  </div>
+                  <div className="flex justify-center my-3">
+                    <div className="flex items-center gap-4 rounded-3xl border-4 border-[#f43f5e] bg-[#f43f5e]/20 px-8 py-2 shadow-[0_0_30px_rgba(244,63,94,0.6)]">
+                      <motion.span animate={{ scale: [1, 1.25, 1] }} transition={{ duration: 0.8, repeat: Infinity }} className="text-[64px] leading-none">
+                        ❤️
+                      </motion.span>
+                      <motion.span key={activeRecess.hearts} initial={{ scale: 1.3 }} animate={{ scale: 1 }} className="font-mono text-[76px] font-extrabold leading-none text-[#ffe4e6] tabular-nums">
+                        {(activeRecess.hearts || 0).toLocaleString('vi-VN')}
+                      </motion.span>
+                      <span className="text-[32px] font-bold text-[#ffe4e6]">tim</span>
+                    </div>
+                  </div>
+                  {activeRecess.topLiker && (
+                    <div className="text-center text-[26px] font-bold text-[#fde047]">
+                      👑 Thả tim nhiều nhất: <b className="text-white">{activeRecess.topLiker.nickname}</b> · {activeRecess.topLiker.n} tim
+                    </div>
+                  )}
+                  {activeRecess.stage !== 'play' && (
+                    <div className="mt-2 text-center text-[28px] font-bold text-[#4ade80]">
+                      Cảm ơn cả lớp! 💕
                     </div>
                   )}
                 </div>
               ) : (
+                /* 7. CLOCK ĐẾM NGƯỢC RA CHƠI */
                 <div className="gon-blackboard gon-recess-board">
                   <div className="gon-recess-title">RA CHƠI</div>
                   <div className="gon-recess-clock">
@@ -901,161 +1389,231 @@ export function GonStage({ game }: { game: GameState }) {
                 </div>
               )}
 
-              {/* Thẻ XẾP HẠNG TIẾT */}
-              <div className="gon-info-card">
-                <span className="gon-card-heading">XẾP HẠNG TIẾT {v.round || 1}</span>
-                <div className="flex flex-col gap-1.5">
-                  {(v.seats.filter((s) => s.score > 0).slice(0, 3).length > 0
-                    ? v.seats.filter((s) => s.score > 0).slice(0, 3).map((s, idx) => ({
+              {/* HAI THẺ CẠNH NHAU: THI ĐUA TỔ & XẾP HẠNG TIẾT */}
+              <div className="gon-two-cards-row">
+                {/* Thẻ THI ĐUA TỔ */}
+                <div className="gon-info-card">
+                  <span className="gon-card-heading">THI ĐUA TỔ</span>
+                  <div className="flex flex-col gap-2">
+                    {[1, 2, 3, 4].map((tNo) => {
+                      const team = v.teams.find((t) => t.no === tNo);
+                      const score = team?.score ?? 0;
+                      const colors = ['var(--g-team1)', 'var(--g-team2)', 'var(--g-team3)', 'var(--g-team4)'];
+                      return (
+                        <div key={tNo} className="gon-team-item">
+                          <span className="gon-team-name">Tổ {tNo}</span>
+                          <div className="gon-team-track">
+                            <div
+                              className="gon-team-fill"
+                              style={{
+                                background: colors[tNo - 1],
+                                width: score > 0 ? `${Math.min(100, Math.max(12, score * 3))}%` : '16px',
+                              }}
+                            />
+                          </div>
+                          <span className="gon-team-pts">{score}đ</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Thẻ XẾP HẠNG TIẾT */}
+                <div className="gon-info-card">
+                  <span className="gon-card-heading">XẾP HẠNG TIẾT {v.round || 1}</span>
+                  <div className="flex flex-col gap-1.5">
+                    {(v.seats.filter((s) => s.score > 0).slice(0, 3).length > 0
+                      ? v.seats.filter((s) => s.score > 0).slice(0, 3).map((s, idx) => ({
                         rank: idx + 1,
                         name: s.nickname,
                         score: s.score,
                         color: CIRCLE_COLORS[idx % CIRCLE_COLORS.length],
                       }))
-                    : [
+                      : [
                         { rank: 1, name: 'Bé Na', score: 30, color: '#06b6d4' },
                         { rank: 2, name: 'Lan Anh', score: 12, color: '#ec4899' },
                         { rank: 3, name: 'Khoa', score: 9, color: '#f97316' },
                       ]
-                  ).map((row) => (
-                    <div key={row.rank} className="gon-rank-row">
-                      <span className="gon-rank-num">{row.rank}</span>
-                      <div className="gon-rank-avatar" style={{ background: row.color }}>
-                        {getInitialLetter(row.name)}
-                      </div>
-                      <span className="gon-rank-name">{row.name}</span>
-                      <span className="gon-rank-score">{row.score}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Thẻ THI ĐUA TỔ */}
-              <div className="gon-info-card">
-                <span className="gon-card-heading">THI ĐUA TỔ</span>
-                <div className="flex flex-col gap-2">
-                  {[1, 2, 3, 4].map((tNo) => {
-                    const team = v.teams.find((t) => t.no === tNo);
-                    const score = team?.score ?? [41, 30, 21, 11][tNo - 1];
-                    const colors = ['#f43f5e', '#06b6d4', '#4ade80', '#facc15'];
-                    return (
-                      <div key={tNo} className="gon-team-item">
-                        <span className="gon-team-name">Tổ {tNo}</span>
-                        <div className="gon-team-track">
-                          <div
-                            className="gon-team-fill"
-                            style={{ background: colors[tNo - 1], width: `${Math.min(100, Math.max(14, score * 2.2))}%` }}
-                          />
+                    ).map((row) => (
+                      <div key={row.rank} className="gon-rank-row">
+                        <span className="gon-rank-num">{row.rank}</span>
+                        <div className="gon-rank-avatar" style={{ background: row.color }}>
+                          {getInitialLetter(row.name)}
                         </div>
-                        <span className="gon-team-pts">{score}đ</span>
+                        <span className="gon-rank-name">{row.name}</span>
+                        <span className="gon-rank-score">{row.score}</span>
                       </div>
-                    );
-                  })}
+                    ))}
+                  </div>
                 </div>
               </div>
 
               {/* Thanh giáo viên */}
               <div className="gon-teacher-card">
                 <div className="gon-teacher-avatar-wrap">
-                  <GonTeacher size={76} hasFlower={hasFlower} />
+                  <GonTeacher size={82} hasFlower={hasFlower} />
                 </div>
                 <div className="gon-teacher-info">
                   <div className="gon-teacher-line1">
                     <span className="gon-teacher-name-bold">{teacherName}</span>
-                    {' · Cả lớp giải lao nhé'}
+                    {activeRecess?.game === 'callup'
+                      ? ` · Gọi ${activeRecess.callName || 'học sinh'} lên bảng kiểm tra!`
+                      : activeRecess?.game === 'roll'
+                        ? ' · Điểm danh thật nhanh nào!'
+                        : activeRecess?.game === 'rps'
+                          ? ' · Oẳn tù tì cùng cô nhé!'
+                          : activeRecess?.game === 'pick'
+                            ? ' · Cả lớp cùng chọn phe nha!'
+                            : activeRecess?.game === 'dance' || activeRecess?.game === 'heart'
+                              ? ' · Thả tim tiếp sức cả lớp nào 💕'
+                              : ' · Cả lớp giải lao nhé'}
                   </div>
                   <div className="gon-teacher-line2">
-                    Cô chấm điểm, lát vào tiết {(v.round || 1) + 1}
+                    {activeRecess?.game === 'callup'
+                      ? 'Nhanh tay gõ đáp án vào bình luận để ghi điểm'
+                      : activeRecess?.game === 'roll'
+                        ? 'Gõ "CÓ MẶT" để nhận ngay +3 điểm'
+                        : activeRecess?.game === 'rps'
+                          ? 'Đoán xem cô sẽ ra búa, kéo hay bao nha'
+                          : activeRecess?.game === 'pick'
+                            ? 'Bình chọn theo sở thích của bạn'
+                            : activeRecess?.game === 'dance' || activeRecess?.game === 'heart'
+                              ? 'Chạm liên tục vào màn hình để thả tim tiếp sức'
+                              : `Cô chấm điểm, lát vào tiết ${(v.round || 1) + 1}`}
                   </div>
                 </div>
                 <span className="gon-teacher-badge">{v.roster.seated || 18} bạn</span>
               </div>
+
+              {/* THẺ LỚP HỌC (24 BÀN) */}
+              <GonClassCard
+                v={v}
+                teacherName={teacherName}
+                giftInfo={giftInfo}
+                hint={`Giờ giải lao · ${v.roster.seated || 18} bạn trong lớp`}
+              />
             </>
           )}
 
           {/* ========================================================
-              UI 3: LỚP TRƯỞNG (Neon - Lớp trưởng)
+              UI 3: LỚP TRƯỞNG / KHEN THƯỞNG (phase === 'results' || 'praise')
              ======================================================== */}
-          {isMonitor && !isShow && !isTeam && !isVote && !isReveal && !isRecess && (
+          {isMonitor && !isShow && !isTeam && !isVote && !isIntro && !isReveal && !isRecess && (
             <>
-              <div className="gon-blackboard gon-monitor-board">
-                <div className="gon-crown-wrap">
-                  <span className="gon-crown-icon">👑</span>
-                  <div className="gon-monitor-avatar">
-                    {getInitialLetter(top1Student.nickname)}
+              {v.phase === 'praise' ? (
+                <div className="gon-blackboard gon-monitor-board">
+                  <div className="text-[52px] leading-none font-black text-[#ffe680]">
+                    🎁 Cô phát quà nè!
+                  </div>
+                  <div className="text-[28px] font-bold text-white/90">
+                    Bạn nhỏ giỏi nhất sau {v.qNo} câu
+                  </div>
+                  <div className="w-full space-y-2 mt-3">
+                    {v.praiseTop.map((s, i) => (
+                      <div key={s.username} className="flex items-center gap-3 px-6 text-[32px] font-bold">
+                        <span className="w-12 text-[#ffe680]">{['🥇', '🥈', '🥉'][i]}</span>
+                        <span className="flex-1 truncate">{s.nickname}</span>
+                        <span className="text-[34px]">{s.desk[s.desk.length - 1]?.icon || '🎁'}</span>
+                        <span className="font-black text-[#38bdf8]">{s.score}đ</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-auto text-[26px] font-bold text-[#ffe680]">
+                    Chào cô, thả tim để được quà nha! 💕
                   </div>
                 </div>
-                <div className="gon-monitor-name">{top1Student.nickname}</div>
-                <div className="gon-monitor-pill">
-                  Lớp trưởng Tiết {v.round || 1} · {top1Student.score || 30} điểm
+              ) : (
+                <div className="gon-blackboard gon-monitor-board">
+                  <div className="gon-crown-wrap">
+                    <span className="gon-crown-icon">👑</span>
+                    <div className="gon-monitor-avatar">
+                      {getInitialLetter(top1Student.nickname)}
+                    </div>
+                  </div>
+                  <div className="gon-monitor-name">{top1Student.nickname}</div>
+                  <div className="gon-monitor-pill">
+                    Lớp trưởng Tiết {v.round || 1} · {top1Student.score || 30} điểm
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="gon-info-card">
                 <span className="gon-card-heading">XẾP HẠNG TIẾT {v.round || 1}</span>
                 <div className="flex flex-col gap-1.5">
-                  {[
-                    { rank: 2, name: 'Lan Anh', score: 12, color: '#10b981' },
-                    { rank: 3, name: 'Khoa', score: 9, color: '#06b6d4' },
-                    { rank: 4, name: 'Thu Hà', score: 7, color: '#f43f5e' },
-                    { rank: 5, name: 'Đức', score: 4, color: '#3b82f6' },
-                  ].map((row) => (
-                    <div key={row.rank} className="gon-rank-row">
-                      <span className="gon-rank-num">{row.rank}</span>
-                      <div className="gon-rank-avatar" style={{ background: row.color }}>
-                        {getInitialLetter(row.name)}
+                  {v.seats.filter((s) => s.score > 0).slice(0, 5).map((row, idx) => (
+                    <div key={row.username || idx} className="gon-rank-row">
+                      <span className="gon-rank-num">{idx + 1}</span>
+                      <div className="gon-rank-avatar" style={{ background: getColorForName(row.nickname) }}>
+                        {getInitialLetter(row.nickname)}
                       </div>
-                      <span className="gon-rank-name">{row.name}</span>
+                      <span className="gon-rank-name">{row.nickname}</span>
                       <span className="gon-rank-score">{row.score}</span>
                     </div>
                   ))}
+                  {v.seats.filter((s) => s.score > 0).length === 0 && (
+                    <div className="py-2 text-center text-[22px] font-semibold opacity-75">
+                      Chưa ai ghi điểm tiết này
+                    </div>
+                  )}
                 </div>
               </div>
+
+              {v.teamWin && v.teamWin.length > 0 && (
+                <div className="gon-info-card" style={{ textAlign: 'center', background: 'rgba(245, 158, 11, 0.15)', borderColor: 'var(--g-gold)' }}>
+                  <div className="text-[28px] font-black text-[#fbbf24]">
+                    🚩 {v.teamWin.map((n) => `Tổ ${n}`).join(' & ')} thắng tiết này!
+                  </div>
+                </div>
+              )}
 
               <div className="gon-info-card">
                 <span className="gon-card-heading">BẢNG VÀNG TUẦN</span>
                 <div className="gon-week-grid">
-                  {(v.weekTop.length >= 3
-                    ? v.weekTop.slice(0, 3).map((w, idx) => ({
-                        rank: `Hạng ${idx + 1}`,
-                        name: w.nickname,
-                        pts: w.points,
-                      }))
-                    : [
-                        { rank: 'Hạng 1', name: 'Anh Tuấn', pts: 146 },
-                        { rank: 'Hạng 2', name: 'Minh Châu', pts: 79 },
-                        { rank: 'Hạng 3', name: 'Bé Na', pts: 53 },
-                      ]
-                  ).map((w, idx) => (
-                    <div key={idx} className="gon-week-box">
-                      <span className="gon-week-rank">{w.rank}</span>
-                      <span className="gon-week-name">{w.name}</span>
-                      <span className="gon-week-pts">{w.pts}</span>
+                  {(v.weekTop && v.weekTop.length > 0 ? v.weekTop.slice(0, 3) : []).map((w, idx) => (
+                    <div key={w.username || idx} className="gon-week-box">
+                      <span className="gon-week-rank">Hạng {idx + 1}</span>
+                      <span className="gon-week-name">{w.nickname}</span>
+                      <span className="gon-week-pts">{w.points}</span>
                     </div>
                   ))}
+                  {(!v.weekTop || v.weekTop.length === 0) && (
+                    <div className="col-span-3 text-center py-2 text-[20px] opacity-75">
+                      Bình chọn và trả lời để tích lũy điểm tuần nha!
+                    </div>
+                  )}
                 </div>
               </div>
 
               <div className="gon-teacher-card">
                 <div className="gon-teacher-avatar-wrap">
-                  <GonTeacher size={76} hasFlower={hasFlower} />
+                  <GonTeacher size={82} hasFlower={hasFlower} />
                 </div>
                 <div className="gon-teacher-info">
                   <div className="gon-teacher-line1">
                     <span className="gon-teacher-name-bold">{teacherName}</span>
-                    {' · Chúc mừng lớp trưởng'}
+                    {v.phase === 'praise' ? ' · Khen ngợi các bạn nhỏ xuất sắc!' : ' · Chúc mừng lớp trưởng!'}
                   </div>
                   <div className="gon-teacher-line2">
-                    Cả lớp vỗ tay cho {top1Student.nickname} nào
+                    {v.phase === 'praise'
+                      ? 'Cả lớp cùng vỗ tay khen thưởng các bạn nào 👏'
+                      : `Cả lớp vỗ tay cho ${top1Student.nickname} nào 👏`}
                   </div>
                 </div>
                 <span className="gon-teacher-badge">Hết tiết</span>
               </div>
+
+              {/* THẺ LỚP HỌC (24 BÀN) */}
+              <GonClassCard
+                v={v}
+                teacherName={teacherName}
+                giftInfo={giftInfo}
+                hint={`Xong tiết · ${v.roster.seated} bạn trong lớp`}
+              />
             </>
           )}
 
           {/* ========================================================
-              UI 4: ĐẦY LỚP (Neon - Đầy lớp 20/20)
+              UI 4: ĐẦY LỚP (Neon - Đầy lớp 24/24)
              ======================================================== */}
           {isFullClass && !isShow && !isTeam && !isVote && !isReveal && !isRecess && !isMonitor && (
             <>
@@ -1063,11 +1621,11 @@ export function GonStage({ game }: { game: GameState }) {
                 <div className="flex items-center justify-between">
                   <span className="gon-card-heading">LỚP ĐÃ ĐỦ CHỖ</span>
                   <span className="gon-pill" style={{ background: '#ec4899', color: '#fff', fontSize: 20, padding: '4px 16px', border: 'none' }}>
-                    20/20
+                    24/24
                   </span>
                 </div>
                 <div className="gon-full-circles-grid">
-                  {'ABCDEFGHIJKLMNOPQRST'.split('').map((ch, idx) => (
+                  {'ABCDEFGHIJKLMNOPQRSTUVWX'.split('').map((ch, idx) => (
                     <div
                       key={idx}
                       className="gon-circle-seat"
@@ -1120,7 +1678,7 @@ export function GonStage({ game }: { game: GameState }) {
 
               <div className="gon-teacher-card">
                 <div className="gon-teacher-avatar-wrap">
-                  <GonTeacher size={76} hasFlower={hasFlower} />
+                  <GonTeacher size={82} hasFlower={hasFlower} />
                 </div>
                 <div className="gon-teacher-info">
                   <div className="gon-teacher-line1">
@@ -1131,7 +1689,7 @@ export function GonStage({ game }: { game: GameState }) {
                     Tặng hoa cô để giữ chỗ nhé
                   </div>
                 </div>
-                <span className="gon-teacher-badge">20 bạn</span>
+                <span className="gon-teacher-badge">24 bạn</span>
               </div>
             </>
           )}
@@ -1139,57 +1697,122 @@ export function GonStage({ game }: { game: GameState }) {
           {/* ========================================================
               TRẠNG THÁI MẶC ĐỊNH (Đang hỏi bài bình thường)
              ======================================================== */}
-          {!isShow && !isTeam && !isVote && !isReveal && !isRecess && !isMonitor && !isFullClass && (
+          {isQuestion && (
             <>
               {/* 3. BẢNG CHỮ: Khối lớn nhất */}
               <div className="gon-blackboard">
                 <div className="gon-blackboard-top">
                   <span className="gon-topic-tag">
-                    {v.golden ? '⭐ CÂU HỎI VÀNG x2' : v.category || 'Công sở: tiền bạc'}
+                    {v.golden ? (
+                      '⭐ CÂU HỎI VÀNG x2'
+                    ) : !v.slot && !v.boardShown ? (
+                      ''
+                    ) : v.slot === 'meo' ? (
+                      `🤪 Đố mẹo ${v.riddleNo}/2`
+                    ) : v.slot === 'su' ? (
+                      '📜 Lịch sử'
+                    ) : v.slot === 'anh' ? (
+                      '🔤 Tiếng Anh'
+                    ) : v.slot === 'dh' ? (
+                      '🖼️ Đuổi hình bắt chữ'
+                    ) : (
+                      v.category || 'Lớp học chữ'
+                    )}
                   </span>
-                  <div className="gon-timer-circle">{left || 10}</div>
+                  <div className="gon-timer-circle">{left || 0}s</div>
                 </div>
 
-                <div className="gon-clue-box">
-                  {v.slot === 'dh' ? (
-                    <span className="text-[64px]">{v.clue}</span>
-                  ) : v.math ? (
-                    <span className="text-[54px] font-black text-[#facc15]">{v.math}</span>
-                  ) : !v.boardShown ? (
-                    <div className="text-center">
-                      <div style={{ fontSize: 44, fontWeight: 800, color: 'var(--g-gold)' }}>Câu {v.qNo || 1}</div>
-                      <div style={{ fontSize: 28, marginTop: 6, opacity: 0.9 }}>👂 Nghe {teacherName.toLowerCase()} đọc đề nè...</div>
+                {!v.boardShown ? (
+                  v.riddleNo === 1 ? (
+                    <div className="flex flex-col items-center justify-center text-center my-auto py-6">
+                      <motion.div animate={{ rotate: [-8, 8, -8] }} transition={{ duration: 1.2, repeat: Infinity }} className="text-[72px] leading-none">
+                        🤪
+                      </motion.div>
+                      <div className="mt-2 text-[46px] font-black text-[#fbbf24]">PHẦN ĐỐ MẸO</div>
+                      <div className="mt-2 text-[28px] font-bold text-white">2 câu liền · vẫn tính điểm</div>
+                      <div className="mt-2 text-[24px] opacity-90">Chuẩn bị tinh thần, nghĩ xéo mới thắng!</div>
                     </div>
                   ) : (
-                    <span>{v.clue || 'Ngày trong tuần ai cũng muốn xoá khỏi lịch, cô Ngân sợ nhất.'}</span>
-                  )}
-                </div>
-
-                <div className="gon-tiles-row">
-                  {(v.boardShown && v.tiles.length > 0 ? v.tiles : ['T', 'A', 'Ú', 'H', 'I', 'H']).map((ch, i) => (
-                    <div key={`tile-${i}`} className="gon-tile-card">
-                      {ch}
-                    </div>
-                  ))}
-                </div>
-
-                <div className="gon-slots-row">
-                  {(v.boardShown && v.slots.length > 0 ? v.slots : ['T', null, null, ' ', null, null, null]).map((slot, i) =>
-                    slot === ' ' ? (
-                      <div key={`space-${i}`} className="gon-slot-space" />
-                    ) : (
-                      <div key={`slot-${i}`} className="gon-slot-box">
-                        {slot || ''}
+                    <div className="flex flex-col items-center justify-center text-center my-auto py-6">
+                      <div className="text-[54px] font-black text-[#fbbf24] leading-tight">
+                        Câu {v.qNo || 1}
                       </div>
-                    ),
-                  )}
-                </div>
+                      <motion.div
+                        animate={{ opacity: [0.5, 1, 0.5] }}
+                        transition={{ duration: 1.4, repeat: Infinity }}
+                        className="mt-3 text-[32px] font-bold text-[#fbbf24]"
+                      >
+                        👂 Nghe {teacherName.toLowerCase()} đọc đề nè...
+                      </motion.div>
+                      <div className="mt-3 text-[24px] opacity-75">
+                        Đọc xong cô sẽ xáo chữ và mở ô đáp án
+                      </div>
+                    </div>
+                  )
+                ) : (
+                  <>
+                    {v.slot === 'dh' ? (
+                      <div className="text-center text-[76px] my-3 leading-tight animate-pulse">
+                        {v.clue}
+                      </div>
+                    ) : v.math ? (
+                      <div className="text-center text-[64px] font-black text-[#fbbf24] my-3">
+                        {v.math}
+                      </div>
+                    ) : (
+                      <>
+                        <div className="gon-clue-box">
+                          <span>{v.clue}</span>
+                        </div>
+                        {v.tiles && v.tiles.length > 0 && (
+                          <div className="gon-tiles-row">
+                            {v.tiles.map((ch, i) => (
+                              <div key={`tile-${i}`} className="gon-tile-card">
+                                {ch}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    {/* Hàng ô đáp án (Slots) - HÌNH 3 */}
+                    {v.slots && v.slots.length > 0 && (
+                      <div className="gon-slots-row">
+                        {v.slots.map((slot, i) =>
+                          slot === ' ' ? (
+                            <div key={`space-${i}`} className="gon-slot-space" />
+                          ) : (
+                            <div
+                              key={`slot-${i}`}
+                              className={`gon-slot-box ${slot ? 'has-char' : ''}`}
+                            >
+                              {slot || ''}
+                            </div>
+                          ),
+                        )}
+                      </div>
+                    )}
+
+                    {/* Gợi ý toán / thêm giờ - HÌNH 1 */}
+                    {v.math && v.phase !== 'reveal' && (
+                      <div className="text-center text-[26px] font-bold text-white/90 mt-2">
+                        Gõ số vào bình luận
+                      </div>
+                    )}
+                    {v.phase === 'bonus' && (
+                      <div className="text-center text-[28px] font-black text-[#fbbf24] mt-2 animate-bounce">
+                        {v.math ? 'Thêm 10 giây, nhẩm lẹ lên!' : 'Cô mở thêm 1 chữ, thêm 10 giây!'}
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
 
               {/* 4. THANH CÔ/THẦY GIÁO */}
               <div className="gon-teacher-card">
                 <div className="gon-teacher-avatar-wrap">
-                  <GonTeacher size={76} hasFlower={hasFlower} />
+                  <GonTeacher size={82} hasFlower={hasFlower} />
                 </div>
                 <div className="gon-teacher-info">
                   <div className="gon-teacher-line1">
@@ -1198,6 +1821,18 @@ export function GonStage({ game }: { game: GameState }) {
                       <span style={{ color: 'var(--g-gold)', fontWeight: 800 }}>
                         {` · Cảm ơn ${giftInfo.nickname} đã gửi tặng ${giftInfo.isBig ? 'món quà to' : 'hoa'}! 💕`}
                       </span>
+                    ) : v.phase === 'bonus' ? (
+                      <span style={{ color: 'var(--g-gold)', fontWeight: 800 }}>
+                        {' · Thêm 10 giây nữa nè cả lớp!'}
+                      </span>
+                    ) : !v.boardShown ? (
+                      <>
+                        {` · Nghe cô đọc câu ${v.qNo || 1} nhé`}
+                      </>
+                    ) : v.correctCount > 0 ? (
+                      <>
+                        {` · Đã có ${v.correctCount} bạn đoán đúng!`}
+                      </>
                     ) : (
                       <>
                         {' · Gõ đáp án vào bình luận, nhanh nhất '}
@@ -1212,6 +1847,12 @@ export function GonStage({ game }: { game: GameState }) {
                           ? '🎆 Món quà to tuyệt vời! Cả lớp cùng vỗ tay cảm ơn bạn nhé 🎉'
                           : '💐 Hoa tươi đẹp quá, thầy cảm ơn con nhiều 💕'}
                       </span>
+                    ) : v.phase === 'bonus' ? (
+                      <span className="font-bold text-[#fbbf24]">
+                        Cô mở thêm 1 chữ cái rồi, nhanh tay đoán nào!
+                      </span>
+                    ) : !v.boardShown ? (
+                      'Lắng nghe thật kỹ để gõ thật nhanh khi cô hô bắt đầu nha'
                     ) : v.correctTop[0] ? (
                       <span>
                         Nhanh nhất: <b>{v.correctTop[0].nickname}</b> ⚡
@@ -1225,6 +1866,25 @@ export function GonStage({ game }: { game: GameState }) {
                   {giftInfo ? `${giftInfo.icon} Quà tặng` : `${v.correctCount || 0} bạn đã đúng`}
                 </span>
               </div>
+
+              {/* BẢNG ĐOÁN NHANH NHẤT (Nếu đã có người đoán đúng) */}
+              {v.correctTop && v.correctTop.length > 0 && (
+                <div className="gon-info-card" style={{ padding: '12px 18px' }}>
+                  <div className="flex items-center justify-between">
+                    <span className="gon-card-heading text-[#38bdf8]">⚡ ĐOÁN NHANH NHẤT</span>
+                    <span className="text-[20px] font-bold text-white/80">{v.correctCount} bạn đã đúng</span>
+                  </div>
+                  <div className="flex gap-2 mt-2">
+                    {v.correctTop.map((a, i) => (
+                      <div key={a.username || i} className="flex-1 flex items-center gap-2 rounded-xl bg-white/10 px-2 py-1">
+                        <span className="text-[22px]">{['🥇', '🥈', '🥉'][i]}</span>
+                        <div className="min-w-0 flex-1 truncate font-bold text-[20px]">{a.nickname}</div>
+                        <span className="font-black text-[#fbbf24] text-[20px]">+{a.points}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* 5. HAI THẺ CẠNH NHAU (Thi đua tổ & Top tương tác) */}
               <div className="gon-two-cards-row">
@@ -1265,16 +1925,9 @@ export function GonStage({ game }: { game: GameState }) {
                         </div>
                       ))
                     ) : (
-                      <>
-                        <div className="gon-interact-item">
-                          <span>Bé Na</span>
-                          <span>30</span>
-                        </div>
-                        <div className="gon-interact-item">
-                          <span>Lan Anh</span>
-                          <span>1</span>
-                        </div>
-                      </>
+                      <div className="gon-interact-note">
+                        Bình luận nhiệt tình để lên bảng tương tác nha!
+                      </div>
                     )}
                   </div>
                   <div className="gon-interact-note">
@@ -1283,69 +1936,10 @@ export function GonStage({ game }: { game: GameState }) {
                 </div>
               </div>
 
-              {/* 6. THẺ LỚP HỌC (20 BÀN - KÍCH THƯỚC TO RÕ) */}
-              <div className="gon-class-card">
-                <div className="gon-class-card-top">
-                  <span className="gon-class-card-title">LỚP HỌC · {Math.min(20, v.seats.length)}/20</span>
-                  <span className="gon-class-card-hint">
-                    Gửi tặng {teacherName.toLowerCase()}: hoa · tim · bánh
-                  </span>
-                </div>
-                <div className="gon-desks-grid">
-                  {Array.from({ length: 20 }, (_, i) => {
-                    const s = v.seats[i];
-                    const isGifter = Boolean(s && giftInfo && s.nickname === giftInfo.nickname);
-                    return (
-                      <div
-                        key={i}
-                        className="gon-desk-cell relative"
-                        style={
-                          isGifter
-                            ? {
-                                borderColor: 'var(--g-gold)',
-                                boxShadow: '0 0 20px rgba(245, 158, 11, 0.95)',
-                                background: 'rgba(245, 158, 11, 0.2)',
-                                transform: 'scale(1.06)',
-                                transition: 'all 0.3s ease',
-                              }
-                            : undefined
-                        }
-                      >
-                        {s && (
-                          <>
-                            <div
-                              className="gon-seat-avatar"
-                              style={{ background: getColorForName(s.nickname) }}
-                            >
-                              {getInitialLetter(s.nickname)}
-                            </div>
-                            <span
-                              className="gon-seat-name"
-                              style={{ color: 'var(--g-text-main)' }}
-                            >
-                              {s.nickname}
-                            </span>
-                            {isGifter && (
-                              <span className="absolute -top-3 -right-3 text-[22px] animate-bounce">
-                                {giftInfo?.icon ?? '🌹'}
-                              </span>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+              {/* 6. THẺ LỚP HỌC (24 BÀN - KÍCH THƯỚC TO RÕ) */}
+              <GonClassCard v={v} teacherName={teacherName} giftInfo={giftInfo} />
             </>
           )}
-        </div>
-
-        {/* ─── VÙNG TIKTOK DƯỚI (chừa 256px) ───────────────────────── */}
-        <div className="gon-bottom-space">
-          <div className="gon-guide-bar">
-            Vùng TikTok: khung chat, nút quà (không đặt nội dung)
-          </div>
         </div>
       </div>
     </div>

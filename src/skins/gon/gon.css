@@ -9,30 +9,33 @@
 .gon-show-options {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 14px;
   width: 100%;
-  margin-top: 10px;
+  margin-top: 12px;
 }
+
 .gon-show-opt {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 16px;
-  border-radius: 18px;
+  gap: 14px;
+  padding: 14px 20px;
+  border-radius: 20px;
   border: 3px solid var(--g-card-border);
   background: rgba(255, 255, 255, 0.05);
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 700;
   transition: all 0.25s ease;
 }
+
 .gon-show-opt.correct {
   border-color: #4ade80;
   background: rgba(74, 222, 128, 0.2);
   color: #4ade80;
 }
+
 .gon-show-opt-letter {
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: var(--g-chip-active-bg);
   color: var(--g-chip-active-text);
@@ -40,7 +43,7 @@
   align-items: center;
   justify-content: center;
   font-family: 'Baloo 2', system-ui, sans-serif;
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 800;
   flex-shrink: 0;
 }
@@ -52,6 +55,7 @@
   gap: 24px;
   margin-top: 14px;
 }
+
 .gon-stake-box {
   width: 200px;
   padding: 14px;
@@ -60,6 +64,7 @@
   background: rgba(255, 255, 255, 0.05);
   text-align: center;
 }
+
 .gon-stake-val {
   font-family: 'Baloo 2', system-ui, sans-serif;
   font-size: 54px;
@@ -83,6 +88,7 @@
   font-weight: 700;
   justify-content: space-between;
 }
+
 .gon-vote-fill {
   position: absolute;
   top: 0;
@@ -106,21 +112,25 @@
   color: #ffffff;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
 }
+
 .gon-banner-bday {
   top: 480px;
   background: linear-gradient(135deg, #ec4899, #f43f5e, #f59e0b);
   border: 4px solid #ffffff;
 }
+
 .gon-banner-bye {
   top: 480px;
   background: linear-gradient(135deg, #3b82f6, #6366f1, #ec4899);
   border: 4px solid #ffffff;
 }
+
 .gon-banner-party {
   top: 500px;
   background: linear-gradient(135deg, #f43f5e, #a855f7, #3b82f6);
   border: 4px solid #fde047;
 }
+
 .gon-banner-gift {
   top: 360px;
   left: 32px;
@@ -133,6 +143,7 @@
   border-radius: 26px;
   padding: 14px 24px;
 }
+
 .gon-banner-escort {
   top: 520px;
   background: linear-gradient(135deg, #1e293b, #334155);
@@ -167,6 +178,7 @@
   pointer-events: none;
   z-index: 0;
 }
+
 /* Đường lề đỏ dọc bên trái của vở kẻ ô */
 [data-gon-theme="giay-o-ly"] .gon-stage::after {
   content: '';
@@ -180,63 +192,39 @@
   pointer-events: none;
   z-index: 0;
 }
-.gon-stage > * {
+
+.gon-stage>* {
   position: relative;
   z-index: 1;
 }
 
-/* ─── Vùng an toàn TikTok (224px top / 256px bottom) ──────────── */
+/* ─── Vùng an toàn & Khung nội dung 1080x1920 ────────────────── */
 .gon-safe-area {
   width: 100%;
   height: 100%;
-  padding-left: 32px;
-  padding-right: 32px;
+  padding: 44px 36px 36px 36px;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
 }
 
-/* Dải chỉ dẫn TikTok */
+/* Dải chỉ dẫn TikTok (bỏ khi livestream) */
 .gon-guide-bar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  color: #94a3b8;
-  font-size: 19px;
-  font-weight: 600;
-  user-select: none;
-  opacity: 0.8;
+  display: none;
 }
-.gon-guide-bar::before,
-.gon-guide-bar::after {
-  content: '';
-  flex: 1;
-  border-bottom: 2px dashed #cbd5e1;
-}
-[data-gon-theme="neon"] .gon-guide-bar { color: #64748b; }
-[data-gon-theme="neon"] .gon-guide-bar::before,
-[data-gon-theme="neon"] .gon-guide-bar::after { border-bottom-color: #334155; }
 
-.gon-top-space {
-  height: 184px; /* Kết hợp với padding thành đúng 224px */
-  display: flex;
-  align-items: flex-end;
-  padding-bottom: 20px;
-}
+.gon-top-space,
 .gon-bottom-space {
-  height: 256px;
-  display: flex;
-  align-items: center;
+  display: none;
 }
 
-/* ─── Khung nội dung chính (1440px) ───────────────────────────── */
+/* ─── Khung nội dung chính (1080x1920 toàn màn hình cân đối) ─── */
 .gon-content {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 20px;
   box-sizing: border-box;
 }
 
@@ -245,34 +233,41 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 2px 0;
 }
+
 .gon-logo-group {
   display: flex;
   flex-direction: column;
 }
+
 .gon-main-title {
   font-family: 'Baloo 2', system-ui, sans-serif;
-  font-size: 58px;
+  font-size: 64px;
   font-weight: 800;
   line-height: 1.05;
   color: var(--g-text-main);
   letter-spacing: -0.5px;
 }
+
 .gon-main-sub {
-  font-size: 23px;
-  font-weight: 600;
+  font-size: 25px;
+  font-weight: 700;
   color: var(--g-text-sub);
   margin-top: 4px;
+  letter-spacing: 0.2px;
 }
+
 .gon-header-chips {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
+
 .gon-pill {
-  padding: 8px 24px;
+  padding: 10px 24px;
   border-radius: 999px;
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 800;
   white-space: nowrap;
   display: inline-flex;
@@ -283,6 +278,7 @@
   border: 2px solid var(--g-chip-border);
   color: var(--g-chip-text);
 }
+
 .gon-pill.active {
   background: var(--g-chip-active-bg);
   color: var(--g-chip-active-text);
@@ -293,20 +289,24 @@
 .gon-sub-chips {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
+
 .gon-pill-gold {
   background: var(--g-chip-gold-bg);
   color: var(--g-chip-gold-text);
   border-color: transparent;
-  padding: 8px 24px;
+  padding: 9px 24px;
+  font-size: 25px;
   font-weight: 800;
 }
+
 .gon-pill-event {
   background: var(--g-chip-event-bg);
   color: var(--g-chip-event-text);
   border-color: transparent;
-  padding: 8px 24px;
+  padding: 9px 24px;
+  font-size: 25px;
   font-weight: 700;
 }
 
@@ -316,28 +316,31 @@
   border: 14px solid var(--g-board-border);
   border-radius: 44px;
   box-shadow: var(--g-board-shadow);
-  padding: 26px 36px 32px;
+  padding: 28px 36px 32px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 20px;
   box-sizing: border-box;
 }
+
 .gon-blackboard-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
+
 .gon-topic-tag {
   background: var(--g-tag-bg);
   color: var(--g-tag-text);
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 700;
-  padding: 8px 24px;
+  padding: 8px 26px;
   border-radius: 999px;
 }
+
 .gon-timer-circle {
-  width: 90px;
-  height: 90px;
+  width: 94px;
+  height: 94px;
   border-radius: 50%;
   border: 7px solid var(--g-timer-ring);
   background-color: var(--g-timer-bg);
@@ -346,18 +349,18 @@
   align-items: center;
   justify-content: center;
   font-family: 'Baloo 2', system-ui, sans-serif;
-  font-size: 46px;
+  font-size: 48px;
   font-weight: 800;
   line-height: 1;
 }
 
 .gon-clue-box {
   color: var(--g-board-text);
-  font-size: 33px;
-  font-weight: 600;
+  font-size: 38px;
+  font-weight: 700;
   line-height: 1.45;
   text-align: center;
-  min-height: 96px;
+  min-height: 104px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -369,19 +372,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  min-height: 96px;
+  gap: 14px;
+  min-height: 104px;
 }
+
 .gon-tile-card {
-  width: 80px;
-  height: 90px;
+  width: 86px;
+  height: 96px;
   background: var(--g-tile-bg);
-  border: 3px solid var(--g-tile-border);
-  border-radius: 18px;
+  border: 3.5px solid var(--g-tile-border);
+  border-radius: 20px;
   box-shadow: var(--g-tile-shadow);
   color: var(--g-tile-text);
   font-family: 'Baloo 2', system-ui, sans-serif;
-  font-size: 46px;
+  font-size: 50px;
   font-weight: 800;
   display: flex;
   align-items: center;
@@ -394,21 +398,23 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  min-height: 80px;
+  gap: 14px;
+  min-height: 86px;
 }
+
 .gon-slot-space {
-  width: 24px;
+  width: 26px;
 }
+
 .gon-slot-box {
-  width: 72px;
-  height: 72px;
-  border: 3.5px dashed var(--g-slot-border);
-  border-radius: 16px;
+  width: 78px;
+  height: 78px;
+  border: 4px dashed var(--g-slot-border);
+  border-radius: 18px;
   background: var(--g-slot-bg);
   color: var(--g-slot-text);
   font-family: 'Baloo 2', system-ui, sans-serif;
-  font-size: 42px;
+  font-size: 46px;
   font-weight: 800;
   display: flex;
   align-items: center;
@@ -416,75 +422,95 @@
   box-sizing: border-box;
 }
 
+.gon-slot-box.has-char {
+  border-style: solid;
+  border-color: #38bdf8;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.15);
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.4);
+}
+
 /* ─── 4. THANH CÔ/THẦY GIÁO ──────────────────────────────────── */
 .gon-teacher-card {
   background: var(--g-teacher-bg);
   border: 2px solid var(--g-teacher-border);
   border-radius: 28px;
-  padding: 16px 24px;
+  padding: 18px 26px;
   display: flex;
   align-items: center;
   gap: 20px;
 }
+
 .gon-teacher-avatar-wrap {
-  width: 76px;
-  height: 76px;
+  width: 82px;
+  height: 82px;
   border-radius: 50%;
   overflow: hidden;
   flex-shrink: 0;
 }
+
 .gon-teacher-info {
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
+
 .gon-teacher-line1 {
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 700;
   color: var(--g-text-main);
+  line-height: 1.25;
 }
+
 .gon-teacher-name-bold {
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 800;
 }
+
 .gon-teacher-plus {
   color: var(--g-teacher-accent);
   font-weight: 800;
 }
+
 .gon-teacher-line2 {
-  font-size: 22px;
+  font-size: 23px;
   color: var(--g-text-muted);
+  line-height: 1.25;
 }
+
 .gon-teacher-badge {
   background: var(--g-teacher-badge-bg);
   color: var(--g-teacher-badge-text);
-  padding: 8px 20px;
+  padding: 8px 22px;
   border-radius: 999px;
-  font-size: 22px;
+  font-size: 23px;
   font-weight: 700;
   white-space: nowrap;
 }
 
-/* ─── 5. HAI THẺ CẠNH NHAU (Thi đua tổ + Top tương tác) ──────── */
-.gon-two-cards-row {
+/* ─── 5. HAI THẺ CẠNH NHAU (Thi đua tổ + Top tương tác / Xếp hạng tiết) ──────── */
+.gon-two-cards-row,
+.gon-info-card-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 18px;
 }
+
 .gon-info-card {
   background: var(--g-card-bg);
   border: 2px solid var(--g-card-border);
   border-radius: 24px;
-  padding: 18px 22px;
+  padding: 18px 24px 20px;
   display: flex;
   flex-direction: column;
   gap: 12px;
   box-sizing: border-box;
 }
+
 .gon-card-heading {
   font-family: 'Baloo 2', system-ui, sans-serif;
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 800;
   color: var(--g-card-title);
   letter-spacing: 0.5px;
@@ -494,32 +520,36 @@
 .gon-team-item {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
+
 .gon-team-name {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
-  width: 60px;
+  width: 66px;
   flex-shrink: 0;
   color: var(--g-text-main);
 }
+
 .gon-team-track {
   flex: 1;
-  height: 18px;
+  height: 22px;
   background: var(--g-team-track);
   border-radius: 999px;
   overflow: hidden;
   display: flex;
 }
+
 .gon-team-fill {
   height: 100%;
   border-radius: 999px;
-  min-width: 14px;
+  min-width: 16px;
 }
+
 .gon-team-pts {
-  font-size: 20px;
-  font-weight: 700;
-  width: 44px;
+  font-size: 23px;
+  font-weight: 800;
+  width: 48px;
   text-align: right;
   color: var(--g-text-main);
 }
@@ -529,12 +559,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 23px;
-  font-weight: 700;
+  font-size: 26px;
+  font-weight: 800;
   color: var(--g-text-main);
 }
+
 .gon-interact-note {
-  font-size: 20px;
+  font-size: 22px;
   color: var(--g-text-muted);
   line-height: 1.35;
   margin-top: 4px;
@@ -551,6 +582,7 @@
   text-align: center;
   margin-top: -6px;
 }
+
 .gon-reveal-count-pill {
   background: #ec4899;
   color: #ffffff;
@@ -568,12 +600,14 @@
   justify-content: space-around;
   padding: 8px 0;
 }
+
 .gon-fastest-col {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 6px;
 }
+
 .gon-initial-circle {
   width: 64px;
   height: 64px;
@@ -587,6 +621,7 @@
   color: #ffffff;
   flex-shrink: 0;
 }
+
 .gon-fastest-name {
   font-size: 20px;
   font-weight: 700;
@@ -596,12 +631,13 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
 .gon-pts-pill {
   background: #fde047;
   color: #1c1917;
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 800;
-  padding: 2px 10px;
+  padding: 3px 12px;
   border-radius: 999px;
 }
 
@@ -614,6 +650,7 @@
   padding: 28px 20px;
   gap: 16px;
 }
+
 .gon-recess-title {
   font-family: 'Baloo 2', system-ui, sans-serif;
   font-size: 56px;
@@ -621,6 +658,7 @@
   letter-spacing: 2px;
   color: #ffffff;
 }
+
 .gon-recess-clock {
   width: 170px;
   height: 170px;
@@ -635,8 +673,9 @@
   font-weight: 800;
   color: #ffffff;
 }
+
 .gon-recess-sub {
-  font-size: 23px;
+  font-size: 24px;
   color: var(--g-text-sub);
   font-weight: 600;
 }
@@ -648,18 +687,20 @@
   gap: 14px;
   padding: 6px 0;
 }
+
 .gon-rank-num {
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 800;
-  width: 24px;
+  width: 26px;
   text-align: center;
 }
+
 .gon-rank-avatar {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   font-family: 'Baloo 2', system-ui, sans-serif;
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 800;
   color: #ffffff;
   display: flex;
@@ -667,13 +708,15 @@
   justify-content: center;
   flex-shrink: 0;
 }
+
 .gon-rank-name {
   flex: 1;
-  font-size: 23px;
+  font-size: 25px;
   font-weight: 700;
 }
+
 .gon-rank-score {
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 800;
   color: var(--g-text-main);
 }
@@ -687,18 +730,21 @@
   padding: 30px 20px;
   gap: 12px;
 }
+
 .gon-crown-wrap {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
+
 .gon-crown-icon {
   font-size: 44px;
   margin-bottom: -10px;
   z-index: 2;
   filter: drop-shadow(0 0 8px #facc15);
 }
+
 .gon-monitor-avatar {
   width: 140px;
   height: 140px;
@@ -714,6 +760,7 @@
   font-size: 72px;
   font-weight: 800;
 }
+
 .gon-monitor-name {
   font-family: 'Baloo 2', system-ui, sans-serif;
   font-size: 44px;
@@ -721,6 +768,7 @@
   color: #ffffff;
   margin-top: 4px;
 }
+
 .gon-monitor-pill {
   background: #fde047;
   color: #1c1917;
@@ -737,6 +785,7 @@
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
 }
+
 .gon-week-box {
   background: rgba(255, 255, 255, 0.04);
   border: 1.5px solid var(--g-card-border);
@@ -747,11 +796,13 @@
   align-items: center;
   gap: 4px;
 }
+
 .gon-week-rank {
   font-size: 19px;
   font-weight: 600;
   color: var(--g-text-muted);
 }
+
 .gon-week-name {
   font-size: 21px;
   font-weight: 800;
@@ -762,18 +813,20 @@
   white-space: nowrap;
   max-width: 100%;
 }
+
 .gon-week-pts {
   font-size: 24px;
   font-weight: 800;
   color: #38bdf8;
 }
 
-/* 4. ĐẦY LỚP (20/20) */
+/* 4. ĐẦY LỚP (24/24) */
 .gon-full-circles-grid {
   display: grid;
-  grid-template-columns: repeat(10, 1fr);
+  grid-template-columns: repeat(8, 1fr);
   gap: 10px;
 }
+
 .gon-circle-seat {
   aspect-ratio: 1;
   border-radius: 50%;
@@ -793,6 +846,7 @@
   justify-content: space-between;
   gap: 16px;
 }
+
 .gon-outside-text {
   font-size: 21px;
   color: var(--g-text-sub);
@@ -800,6 +854,7 @@
   max-width: 320px;
   line-height: 1.35;
 }
+
 .gon-outside-queue {
   display: flex;
   align-items: center;
@@ -807,6 +862,7 @@
   flex-wrap: wrap;
   justify-content: flex-end;
 }
+
 .gon-mini-circle {
   width: 38px;
   height: 38px;
@@ -823,75 +879,81 @@
 .gon-class-card {
   background: var(--g-card-bg);
   border: 2px solid var(--g-card-border);
-  border-radius: 24px;
-  padding: 14px 18px 16px;
+  border-radius: 26px;
+  padding: 16px 20px 18px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   box-sizing: border-box;
 }
+
 .gon-class-card-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
+
 .gon-class-card-title {
   font-family: 'Baloo 2', system-ui, sans-serif;
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 800;
   color: var(--g-card-title);
   letter-spacing: 0.5px;
 }
+
 .gon-class-card-hint {
-  font-size: 21px;
+  font-size: 23px;
   color: var(--g-text-muted);
-  font-weight: 500;
+  font-weight: 600;
 }
 
-/* Lưới 10 cột x 2 hàng (20 bàn - kích thước to rõ, fit chuẩn không bị cắt UI) */
+/* Lưới 6 cột x 4 hàng (24 bàn - kích thước to rõ, dễ nhìn khi live) */
 .gon-desks-grid {
   display: grid;
-  grid-template-columns: repeat(10, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
   align-content: start;
 }
+
 .gon-desk-cell {
   background: var(--g-desk-bg);
-  border: 2px dashed var(--g-desk-border);
-  border-radius: 14px;
+  border: 2.5px dashed var(--g-desk-border);
+  border-radius: 16px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  aspect-ratio: 1 / 1.15;
+  min-height: 98px;
   overflow: hidden;
-  gap: 2px;
-  padding: 4px 2px;
+  gap: 4px;
+  padding: 6px 4px;
 }
+
 .gon-seat-avatar {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: 'Baloo 2', system-ui, sans-serif;
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 800;
   color: #ffffff;
-  border: 2px solid rgba(255, 255, 255, 0.9);
+  border: 2.5px solid rgba(255, 255, 255, 0.9);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
 }
+
 .gon-seat-name {
   font-family: 'Nunito', system-ui, sans-serif;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 800;
-  line-height: 1.1;
-  max-width: 76px;
+  line-height: 1.15;
+  max-width: 130px;
+  text-align: center;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-  text-align: center;
 }
